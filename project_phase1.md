@@ -47,16 +47,16 @@ Both users can log in, see their name on screen, and log out. All other routes a
 ## Week 3 — Transaction CRUD
 
 ### Tasks
-- [ ] Write migration `003_transactions.up.sql` — `payment_methods` and `transactions` tables
-- [ ] Implement API endpoints:
+- [x] Write migration `003_transactions.up.sql` — `payment_methods` and `transactions` tables
+- [x] Implement API endpoints:
   - `GET /api/v1/transactions` (with filters: date range, type, category)
   - `POST /api/v1/transactions`
   - `PUT /api/v1/transactions/:id`
   - `DELETE /api/v1/transactions/:id` (soft delete)
-- [ ] Add request validation (amount > 0, valid date, valid type enum)
-- [ ] Build React `TransactionList` page — sortable table, type colour-coding
-- [ ] Build `TransactionForm` modal — amount, date, description, category, type, payment method
-- [ ] Add delete with confirmation dialog
+- [x] Add request validation (amount > 0, valid date, valid type enum)
+- [x] Build React `TransactionList` page — sortable table, type colour-coding
+- [x] Build `TransactionForm` modal — amount, date, description, category, type, payment method
+- [x] Add delete with confirmation dialog
 
 ### Deliverable
 Both users can record, edit, and delete income and expense transactions. List updates in real time.

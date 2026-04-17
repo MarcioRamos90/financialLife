@@ -15,7 +15,6 @@ import (
 	"github.com/marcioramos/financiallife/internal/service"
 )
 
-// New builds and returns the application router.
 func New(cfg *config.Config, db *sqlx.DB) http.Handler {
 	r := chi.NewRouter()
 
@@ -33,49 +32,58 @@ func New(cfg *config.Config, db *sqlx.DB) http.Handler {
 
 	// ── Dependencies ──────────────────────────────────────────────────────────
 	userRepo := repository.NewUserRepository(db)
+	txRepo   := repository.NewTransactionRepository(db)
 
 	authSvc, err := service.NewAuthService(
-		userRepo,
-		cfg.JWTSecret,
-		cfg.JWTAccessTokenExpiry,
-		cfg.JWTRefreshTokenExpiry,
+		userRepo, cfg.JWTSecret,
+		cfg.JWTAccessTokenExpiry, cfg.JWTRefreshTokenExpiry,
 	)
 	if err != nil {
 		panic("failed to init auth service: " + err.Error())
 	}
+	txSvc := service.NewTransactionService(txRepo)
 
 	authHandler := handlers.NewAuthHandler(authSvc)
+	txHandler   := handlers.NewTransactionHandler(txSvc)
 
-	// ── Health check ──────────────────────────────────────────────────────────
+	// ── Health ────────────────────────────────────────────────────────────────
 	r.Get("/health", handlers.Health)
 
 	// ── API v1 ────────────────────────────────────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
 
-		// Public auth routes
+		// Public auth
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login",   authHandler.Login)
 			r.Post("/refresh", authHandler.Refresh)
 			r.Post("/logout",  authHandler.Logout)
 		})
 
-		// Protected routes (JWT required)
+		// Protected
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.JWTAuth(authSvc))
 
+			// Auth
 			r.Get("/auth/me", authHandler.Me)
 
-			r.Get("/transactions",  http.NotFound) // TODO Week 3
-			r.Post("/transactions", http.NotFound) // TODO Week 3
+			// Transactions
+			r.Get("/transactions",                    txHandler.List)
+			r.Post("/transactions",                   txHandler.Create)
+			r.Put("/transactions/{id}",               txHandler.Update)
+			r.Delete("/transactions/{id}",            txHandler.Delete)
+			r.Get("/transactions/payment-methods",    txHandler.ListPaymentMethods)
 
-			r.Get("/income-sources",  http.NotFound) // TODO Week 4
-			r.Post("/income-sources", http.NotFound) // TODO Week 4
+			// TODO Week 4
+			r.Get("/income-sources",  http.NotFound)
+			r.Post("/income-sources", http.NotFound)
 
-			r.Get("/allocations/rules",   http.NotFound) // TODO Week 5
-			r.Post("/allocations/rules",  http.NotFound) // TODO Week 5
-			r.Get("/allocations/preview", http.NotFound) // TODO Week 5
+			// TODO Week 5
+			r.Get("/allocations/rules",   http.NotFound)
+			r.Post("/allocations/rules",  http.NotFound)
+			r.Get("/allocations/preview", http.NotFound)
 
-			r.Get("/reports/monthly/{year}/{month}", http.NotFound) // TODO Week 6
+			// TODO Week 6
+			r.Get("/reports/monthly/{year}/{month}", http.NotFound)
 		})
 	})
 

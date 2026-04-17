@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/marcioramos/financiallife/internal/api/middleware"
 	"github.com/marcioramos/financiallife/internal/model"
 	"github.com/marcioramos/financiallife/internal/service"
 )
@@ -114,11 +115,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 func claimsFromCtx(r *http.Request) *model.Claims {
-	claims, _ := r.Context().Value(contextKey("claims")).(*model.Claims)
-	return claims
+	return middleware.ClaimsFromCtx(r)
 }
-
-type contextKey string
 
 
 func jsonOK(w http.ResponseWriter, data any) {
