@@ -144,6 +144,33 @@ A complete, usable MVP: both users can log in, record income and expenses, run t
 
 ---
 
+## E2E Testing — Playwright (set up after Week 3)
+
+End-to-end tests open a real browser, click through the app, and verify everything works from the user's perspective. To be set up once Week 3 (transactions) is done so there are enough screens to test meaningfully.
+
+### Setup tasks
+- [ ] Install Playwright: `npm init playwright@latest` inside `frontend/`
+- [ ] Write test: login flow (fill form → submit → lands on dashboard)
+- [ ] Write test: create a transaction (fill form → appears in list)
+- [ ] Write test: edit a transaction (change amount → list reflects update)
+- [ ] Write test: delete a transaction (confirm dialog → removed from list)
+- [ ] Write test: logout (click sign out → redirected to login)
+- [ ] Add Playwright to GitHub Actions so E2E runs on every push
+
+### How to run
+```bash
+# From frontend/ on Windows
+npx playwright test
+
+# Run with visible browser (useful for debugging)
+npx playwright test --headed
+
+# Record a new test by clicking through the app manually
+npx playwright codegen http://localhost:5173
+```
+
+---
+
 ## Key Files to Create First
 
 ```
