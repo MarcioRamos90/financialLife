@@ -8,8 +8,8 @@ type Household struct {
 	Currency  string    `db:"currency"   json:"currency"`
 	Timezone  string    `db:"timezone"   json:"timezone"`
 	PayDay    *int      `db:"pay_day"    json:"pay_day"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	CreatedAt DBTime    `db:"created_at" json:"created_at"`
+	UpdatedAt DBTime    `db:"updated_at" json:"updated_at"`
 }
 
 type User struct {
@@ -19,8 +19,8 @@ type User struct {
 	DisplayName  string     `db:"display_name"  json:"display_name"`
 	PasswordHash string     `db:"password_hash" json:"-"`
 	Role         string     `db:"role"          json:"role"`
-	CreatedAt    time.Time  `db:"created_at"    json:"created_at"`
-	UpdatedAt    time.Time  `db:"updated_at"    json:"updated_at"`
+	CreatedAt    DBTime     `db:"created_at"    json:"created_at"`
+	UpdatedAt    DBTime     `db:"updated_at"    json:"updated_at"`
 	DeletedAt    *time.Time `db:"deleted_at"    json:"-"`
 }
 

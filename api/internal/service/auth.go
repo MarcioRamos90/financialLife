@@ -147,7 +147,7 @@ func (s *AuthService) generateAndStoreRefreshToken(ctx context.Context, userID s
 	}
 	rawToken := hex.EncodeToString(raw)
 	tokenHash := hashToken(rawToken)
-	expiresAt := time.Now().Add(s.refreshTokenDuration).UTC().Format(time.RFC3339)
+	expiresAt := time.Now().Add(s.refreshTokenDuration).UTC()
 
 	if err := s.users.StoreRefreshToken(ctx, userID, tokenHash, expiresAt); err != nil {
 		return "", err

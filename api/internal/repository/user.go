@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -21,7 +22,7 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	var u model.User
 	err := r.db.GetContext(ctx, &u,
-		`SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL`, email)
+		r.db.Rebind(`SELECT * FROM users WHERE email = ? AND deleted_at IS NULL`), email)
 	if err != nil {
 		return nil, fmt.Errorf("GetByEmail: %w", err)
 	}
@@ -32,7 +33,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.U
 func (r *UserRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
 	var u model.User
 	err := r.db.GetContext(ctx, &u,
-		`SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`, id)
+		r.db.Rebind(`SELECT * FROM users WHERE id = ? AND deleted_at IS NULL`), id)
 	if err != nil {
 		return nil, fmt.Errorf("GetByID: %w", err)
 	}
@@ -40,26 +41,27 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*model.User, e
 }
 
 // StoreRefreshToken persists a hashed refresh token for the user.
-func (r *UserRepository) StoreRefreshToken(ctx context.Context, userID, tokenHash, expiresAt string) error {
+func (r *UserRepository) StoreRefreshToken(ctx context.Context, userID, tokenHash string, expiresAt time.Time) error {
+	id := newUUID()
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-		 VALUES ($1, $2, $3::timestamptz)`,
-		userID, tokenHash, expiresAt)
+		r.db.Rebind(`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)`),
+		id, userID, tokenHash, expiresAt.UTC().Format("2006-01-02 15:04:05"))
 	if err != nil {
 		return fmt.Errorf("StoreRefreshToken: %w", err)
 	}
 	return nil
 }
 
-// GetRefreshToken returns the token row if it exists, is not revoked, and is not expired.
+// GetRefreshToken returns the user ID if the token exists, is not revoked, and is not expired.
 func (r *UserRepository) GetRefreshToken(ctx context.Context, tokenHash string) (string, error) {
+	now := time.Now().UTC().Format("2006-01-02 15:04:05")
 	var userID string
 	err := r.db.GetContext(ctx, &userID,
-		`SELECT user_id FROM refresh_tokens
-		 WHERE  token_hash = $1
-		 AND    revoked_at IS NULL
-		 AND    expires_at > now()`,
-		tokenHash)
+		r.db.Rebind(`SELECT user_id FROM refresh_tokens
+		 WHERE token_hash = ?
+		 AND   revoked_at IS NULL
+		 AND   expires_at > ?`),
+		tokenHash, now)
 	if err != nil {
 		return "", fmt.Errorf("GetRefreshToken: %w", err)
 	}
@@ -69,7 +71,7 @@ func (r *UserRepository) GetRefreshToken(ctx context.Context, tokenHash string) 
 // RevokeRefreshToken marks a token as revoked.
 func (r *UserRepository) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1`,
+		r.db.Rebind(`UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = ?`),
 		tokenHash)
 	if err != nil {
 		return fmt.Errorf("RevokeRefreshToken: %w", err)
@@ -80,8 +82,8 @@ func (r *UserRepository) RevokeRefreshToken(ctx context.Context, tokenHash strin
 // RevokeAllUserTokens revokes every refresh token for a user (used on logout-all).
 func (r *UserRepository) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE refresh_tokens SET revoked_at = now()
-		 WHERE user_id = $1 AND revoked_at IS NULL`,
+		r.db.Rebind(`UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP
+		 WHERE user_id = ? AND revoked_at IS NULL`),
 		userID)
 	if err != nil {
 		return fmt.Errorf("RevokeAllUserTokens: %w", err)

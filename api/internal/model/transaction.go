@@ -9,7 +9,7 @@ type PaymentMethod struct {
 	HouseholdID string     `db:"household_id" json:"household_id"`
 	Name        string     `db:"name"         json:"name"`
 	Type        string     `db:"type"         json:"type"`
-	CreatedAt   time.Time  `db:"created_at"   json:"created_at"`
+	CreatedAt   DBTime     `db:"created_at"   json:"created_at"`
 	DeletedAt   *time.Time `db:"deleted_at"   json:"-"`
 }
 
@@ -28,8 +28,8 @@ type Transaction struct {
 	PaymentMethodName *string    `db:"payment_method_name" json:"payment_method_name"` // joined
 	IncomeSourceID    *string    `db:"income_source_id"   json:"income_source_id"`
 	TransactionDate   string     `db:"transaction_date"   json:"transaction_date"` // "YYYY-MM-DD"
-	CreatedAt         time.Time  `db:"created_at"         json:"created_at"`
-	UpdatedAt         time.Time  `db:"updated_at"         json:"updated_at"`
+	CreatedAt         DBTime     `db:"created_at"         json:"created_at"`
+	UpdatedAt         DBTime     `db:"updated_at"         json:"updated_at"`
 	DeletedAt         *time.Time `db:"deleted_at"         json:"-"`
 }
 
