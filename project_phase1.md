@@ -28,16 +28,16 @@ Everything else depends on this being solid. Do not skip steps.
 ## Week 2 — Authentication
 
 ### Tasks
-- [ ] Write migration `002_auth.up.sql` — add `refresh_tokens` table
-- [ ] Implement `POST /api/v1/auth/login` — email + password → JWT access token (15 min) + refresh token (30 days)
-- [ ] Implement `POST /api/v1/auth/refresh` — exchange refresh token for new access token
-- [ ] Implement `POST /api/v1/auth/logout` — revoke refresh token
-- [ ] Implement `GET /api/v1/auth/me` — return current user profile
-- [ ] Add JWT middleware (RS256) that protects all non-auth routes
-- [ ] Build React login page with email + password form
-- [ ] Add auth context + token storage (memory for access token, httpOnly cookie for refresh)
-- [ ] Add route guard: redirect unauthenticated users to `/login`
-- [ ] Seed the database with two household users (Marcio + Wife) for local dev
+- [x] Write migration `002_auth.up.sql` — add `refresh_tokens` table
+- [x] Implement `POST /api/v1/auth/login` — email + password → JWT access token (15 min) + refresh token (30 days)
+- [x] Implement `POST /api/v1/auth/refresh` — exchange refresh token for new access token
+- [x] Implement `POST /api/v1/auth/logout` — revoke refresh token
+- [x] Implement `GET /api/v1/auth/me` — return current user profile
+- [x] Add JWT middleware (HS256) that protects all non-auth routes
+- [x] Build React login page with email + password form
+- [x] Add auth context + token storage (memory for access token, httpOnly cookie for refresh)
+- [x] Add route guard: redirect unauthenticated users to `/login`
+- [x] Seed the database with two household users (Marcio + Wife) for local dev
 
 ### Deliverable
 Both users can log in, see their name on screen, and log out. All other routes are protected.
