@@ -1,0 +1,15 @@
+FROM golang:1.25-alpine
+
+WORKDIR /app
+
+# -mod=mod lets Go update go.sum automatically during builds.
+# Without this, Go 1.16+ refuses to write go.sum (readonly by default)
+# which causes "missing go.sum entry" errors when the volume is mounted fresh.
+ENV GOFLAGS=-mod=mod
+
+# Install Air for hot-reload
+RUN go install github.com/air-verse/air@latest
+
+EXPOSE 8080
+
+CMD ["air", "-c", ".air.toml"]
