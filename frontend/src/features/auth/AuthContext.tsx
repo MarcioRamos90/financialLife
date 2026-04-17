@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import axios from 'axios'
 import api, { setAccessToken } from '../../lib/api'
 import type { AuthContextValue, UserProfile } from './types'
 
@@ -11,24 +10,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // On mount: try to restore the session via the refresh cookie
   useEffect(() => {
-    axios
-      .post('/api/v1/auth/refresh', {}, { withCredentials: true })
-      .then(({ data }) => {
-        setAccessToken(data.data.access_token)
+    fetch('/api/v1/auth/refresh', { method: 'POST', credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error('no session')
+        return res.json()
+      })
+      .then((body) => {
+        setAccessToken(body.data.access_token)
         return api.get<{ data: UserProfile }>('/auth/me')
       })
-      .then(({ data }) => setUser(data.data))
+      .then((body) => setUser(body.data))
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false))
   }, [])
 
   const login = async (email: string, password: string) => {
-    const { data } = await api.post<{ data: { access_token: string; user: UserProfile } }>(
+    const body = await api.post<{ data: { access_token: string; user: UserProfile } }>(
       '/auth/login',
       { email, password }
     )
-    setAccessToken(data.data.access_token)
-    setUser(data.data.user)
+    setAccessToken(body.data.access_token)
+    setUser(body.data.user)
   }
 
   const logout = async () => {
