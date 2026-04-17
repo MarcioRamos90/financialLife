@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 
 	"github.com/marcioramos/financiallife/internal/api/handlers"
 	"github.com/marcioramos/financiallife/internal/api/middleware"
@@ -15,7 +15,7 @@ import (
 	"github.com/marcioramos/financiallife/internal/service"
 )
 
-func New(cfg *config.Config, db *sqlx.DB) http.Handler {
+func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	r := chi.NewRouter()
 
 	// ── Global middleware ─────────────────────────────────────────────────────

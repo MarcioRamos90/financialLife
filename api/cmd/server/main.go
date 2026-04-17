@@ -30,22 +30,17 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to load config")
 	}
 
-	// ── Database ──────────────────────────────────────────────────────────────
-	pool, err := db.Connect(cfg)
+	// ── Database + AutoMigrate ────────────────────────────────────────────────
+	gormDB, err := db.Connect(cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to database")
 	}
-	defer pool.Close()
-	log.Info().Msg("database connection established")
-
-	// ── Migrations ────────────────────────────────────────────────────────────
-	if err := db.RunMigrations(cfg); err != nil {
-		log.Fatal().Err(err).Msg("failed to run migrations")
-	}
-	log.Info().Msg("database migrations applied")
+	sqlDB, _ := gormDB.DB()
+	defer sqlDB.Close()
+	log.Info().Msg("database connection established and schema migrated")
 
 	// ── HTTP Server ───────────────────────────────────────────────────────────
-	r := router.New(cfg, pool)
+	r := router.New(cfg, gormDB)
 	addr := fmt.Sprintf(":%s", cfg.APIPort)
 
 	srv := &http.Server{

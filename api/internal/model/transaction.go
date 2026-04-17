@@ -1,36 +1,60 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 // ─── Domain models ────────────────────────────────────────────────────────────
 
 type PaymentMethod struct {
-	ID          string     `db:"id"           json:"id"`
-	HouseholdID string     `db:"household_id" json:"household_id"`
-	Name        string     `db:"name"         json:"name"`
-	Type        string     `db:"type"         json:"type"`
-	CreatedAt   DBTime     `db:"created_at"   json:"created_at"`
-	DeletedAt   *time.Time `db:"deleted_at"   json:"-"`
+	ID          string         `gorm:"type:text;primaryKey"                                                  json:"id"`
+	HouseholdID string         `gorm:"type:text;not null;index"                                              json:"household_id"`
+	Name        string         `gorm:"type:text;not null"                                                    json:"name"`
+	Type        string         `gorm:"type:text;not null;check:type IN ('credit_card','debit_card','bank_transfer','pix','cash','other')" json:"type"`
+	CreatedAt   time.Time      `                                                                             json:"created_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"                                                                json:"-"`
 }
 
 type Transaction struct {
-	ID                string     `db:"id"                 json:"id"`
-	HouseholdID       string     `db:"household_id"       json:"household_id"`
-	RecordedBy        string     `db:"recorded_by"        json:"recorded_by"`
-	RecordedByName    string     `db:"recorded_by_name"   json:"recorded_by_name"` // joined from users
-	Type              string     `db:"type"               json:"type"`
-	Amount            float64    `db:"amount"             json:"amount"`
-	Currency          string     `db:"currency"           json:"currency"`
-	Description       string     `db:"description"        json:"description"`
-	Category          string     `db:"category"           json:"category"`
-	IsJoint           bool       `db:"is_joint"           json:"is_joint"`
-	PaymentMethodID   *string    `db:"payment_method_id"  json:"payment_method_id"`
-	PaymentMethodName *string    `db:"payment_method_name" json:"payment_method_name"` // joined
-	IncomeSourceID    *string    `db:"income_source_id"   json:"income_source_id"`
-	TransactionDate   string     `db:"transaction_date"   json:"transaction_date"` // "YYYY-MM-DD"
-	CreatedAt         DBTime     `db:"created_at"         json:"created_at"`
-	UpdatedAt         DBTime     `db:"updated_at"         json:"updated_at"`
-	DeletedAt         *time.Time `db:"deleted_at"         json:"-"`
+	ID              string         `gorm:"type:text;primaryKey"                                            json:"id"`
+	HouseholdID     string         `gorm:"type:text;not null;index"                                        json:"household_id"`
+	RecordedBy      string         `gorm:"type:text;not null;index"                                        json:"recorded_by"`
+	RecordedByUser  User           `gorm:"foreignKey:RecordedBy"                                           json:"-"`
+	Type            string         `gorm:"type:text;not null;check:type IN ('income','expense','transfer')" json:"type"`
+	Amount          float64        `gorm:"not null;check:amount > 0"                                       json:"amount"`
+	Currency        string         `gorm:"type:text;not null;default:BRL"                                  json:"currency"`
+	Description     string         `gorm:"type:text"                                                       json:"description"`
+	Category        string         `gorm:"type:text"                                                       json:"category"`
+	IsJoint         bool           `gorm:"default:false"                                                   json:"is_joint"`
+	PaymentMethodID *string        `gorm:"type:text;index"                                                 json:"payment_method_id"`
+	PaymentMethod   *PaymentMethod `gorm:"foreignKey:PaymentMethodID"                                      json:"-"`
+	IncomeSourceID  *string        `gorm:"type:text"                                                       json:"income_source_id"`
+	TransactionDate string         `gorm:"type:text;not null;index"                                        json:"transaction_date"`
+	CreatedAt       time.Time      `                                                                       json:"created_at"`
+	UpdatedAt       time.Time      `                                                                       json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `gorm:"index"                                                           json:"-"`
+
+	// Virtual fields — populated from associations, not stored in the DB.
+	RecordedByName    string  `gorm:"-" json:"recorded_by_name"`
+	PaymentMethodName *string `gorm:"-" json:"payment_method_name"`
+}
+
+// BeforeCreate generates a UUID if the ID is not already set.
+func (t *Transaction) BeforeCreate(_ *gorm.DB) error {
+	if t.ID == "" {
+		t.ID = uuid.New().String()
+	}
+	return nil
+}
+
+func (p *PaymentMethod) BeforeCreate(_ *gorm.DB) error {
+	if p.ID == "" {
+		p.ID = uuid.New().String()
+	}
+	return nil
 }
 
 // ─── Request / Response DTOs ──────────────────────────────────────────────────

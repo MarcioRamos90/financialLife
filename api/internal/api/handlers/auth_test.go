@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 
 	apimiddleware "github.com/marcioramos/financiallife/internal/api/middleware"
 	"github.com/marcioramos/financiallife/internal/model"
@@ -21,7 +21,7 @@ import (
 // ─── Shared test environment ──────────────────────────────────────────────────
 
 type testEnv struct {
-	db    *sqlx.DB
+	db    *gorm.DB
 	seeds testutil.Seeds
 	auth  *service.AuthService
 	tx    *service.TransactionService

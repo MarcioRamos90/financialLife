@@ -1,86 +1,65 @@
 // Package testutil provides helpers for integration tests that require a real database.
-// It uses an in-memory SQLite database (modernc.org/sqlite — pure Go, no CGo).
+// It uses an in-memory SQLite database via the pure-Go glebarez/sqlite GORM driver.
+// Schema is derived from GORM AutoMigrate — no separate SQL files to maintain.
 package testutil
 
 import (
-	"embed"
 	"fmt"
-	"io/fs"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
-	_ "modernc.org/sqlite" // register "sqlite" driver
-)
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
+	"github.com/marcioramos/financiallife/internal/model"
+)
 
 // Seeds holds the IDs and credentials inserted during DB setup.
 type Seeds struct {
 	HouseholdID string
-	UserID      string // marcio@test.local
-	UserID2     string // partner@test.local
+	UserID      string // marcio@test.local  / password: "password"
+	UserID2     string // partner@test.local / password: "password"
 	Email       string
 	Email2      string
-	// Password for both users is "password"
 }
 
-// NewDB opens an in-memory SQLite database, runs the SQLite migrations in order,
-// and seeds baseline test data. The database is closed automatically when the test ends.
-//
-// Adding a new production migration? Add the matching SQLite migration file to
-// internal/testutil/migrations/ — NewDB will pick it up automatically.
-func NewDB(t *testing.T) (*sqlx.DB, Seeds) {
+// NewDB opens an in-memory SQLite database, runs AutoMigrate against the
+// current model definitions, and seeds baseline test data.
+// The database is automatically closed when the test ends.
+func NewDB(t *testing.T) (*gorm.DB, Seeds) {
 	t.Helper()
 
-	// Each test gets its own in-memory DB via a unique URI to avoid cross-test interference.
-	db, err := sqlx.Open("sqlite", fmt.Sprintf("file:%s?mode=memory&cache=shared&_foreign_keys=on", t.Name()))
+	// Unique DSN per test so parallel tests don't share state.
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	// Use a single connection so the in-memory DB persists for the test lifetime.
-	db.SetMaxOpenConns(1)
 
-	t.Cleanup(func() { db.Close() })
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(1)
+	t.Cleanup(func() { sqlDB.Close() })
 
-	runMigrations(t, db)
+	// AutoMigrate derives the schema from the same model structs used in
+	// production — adding a new model here is all that's needed.
+	if err := db.AutoMigrate(
+		&model.Household{},
+		&model.User{},
+		&model.RefreshToken{},
+		&model.PaymentMethod{},
+		&model.Transaction{},
+	); err != nil {
+		t.Fatalf("AutoMigrate: %v", err)
+	}
+
 	return db, seedData(t, db)
 }
 
-// runMigrations reads all *.sql files from the embedded migrations directory
-// and executes them in lexicographic order (001, 002, 003, …).
-func runMigrations(t *testing.T, db *sqlx.DB) {
-	t.Helper()
-
-	entries, err := fs.ReadDir(migrationsFS, "migrations")
-	if err != nil {
-		t.Fatalf("read migrations dir: %v", err)
-	}
-
-	// Sort by filename so migrations run in order (001, 002, 003, …).
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name() < entries[j].Name()
-	})
-
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
-			continue
-		}
-		data, err := migrationsFS.ReadFile("migrations/" + entry.Name())
-		if err != nil {
-			t.Fatalf("read migration %s: %v", entry.Name(), err)
-		}
-		if _, err := db.Exec(string(data)); err != nil {
-			t.Fatalf("run migration %s: %v", entry.Name(), err)
-		}
-	}
-}
-
 // seedData inserts a household and two users with password "password" (bcrypt cost 10).
-func seedData(t *testing.T, db *sqlx.DB) Seeds {
+func seedData(t *testing.T, db *gorm.DB) Seeds {
 	t.Helper()
 
 	s := Seeds{
@@ -94,20 +73,15 @@ func seedData(t *testing.T, db *sqlx.DB) Seeds {
 	// bcrypt hash of "password" at cost 10
 	const passwordHash = "$2b$10$GHk5DADWwtKXONzd.eSskuIose5LWOyDuz3CgncckKTMZdvp1bWf6"
 
-	if _, err := db.Exec(
-		`INSERT INTO households (id, name) VALUES (?, ?)`,
-		s.HouseholdID, "Test Household",
-	); err != nil {
+	if err := db.Create(&model.Household{ID: s.HouseholdID, Name: "Test Household"}).Error; err != nil {
 		t.Fatalf("seed household: %v", err)
 	}
 
-	if _, err := db.Exec(
-		`INSERT INTO users (id, household_id, email, display_name, password_hash, role) VALUES
-			(?, ?, ?, ?, ?, 'admin'),
-			(?, ?, ?, ?, ?, 'member')`,
-		s.UserID, s.HouseholdID, s.Email, "Marcio", passwordHash,
-		s.UserID2, s.HouseholdID, s.Email2, "Partner", passwordHash,
-	); err != nil {
+	users := []model.User{
+		{ID: s.UserID, HouseholdID: s.HouseholdID, Email: s.Email, DisplayName: "Marcio", PasswordHash: passwordHash, Role: "admin"},
+		{ID: s.UserID2, HouseholdID: s.HouseholdID, Email: s.Email2, DisplayName: "Partner", PasswordHash: passwordHash, Role: "member"},
+	}
+	if err := db.Create(&users).Error; err != nil {
 		t.Fatalf("seed users: %v", err)
 	}
 
