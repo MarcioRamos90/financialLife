@@ -111,8 +111,9 @@ export default function TransactionForm({ transaction, onClose }: Props) {
           {/* Amount + Currency */}
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
               <input
+                id="amount"
                 type="number" step="0.01" min="0.01" required
                 value={form.amount}
                 onChange={e => set('amount', e.target.value)}
@@ -121,8 +122,9 @@ export default function TransactionForm({ transaction, onClose }: Props) {
               />
             </div>
             <div className="w-24">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
               <select
+                id="currency"
                 value={form.currency}
                 onChange={e => set('currency', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -136,8 +138,9 @@ export default function TransactionForm({ transaction, onClose }: Props) {
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <label htmlFor="transaction_date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input
+              id="transaction_date"
               type="date" required
               value={form.transaction_date}
               onChange={e => set('transaction_date', e.target.value)}
@@ -147,8 +150,9 @@ export default function TransactionForm({ transaction, onClose }: Props) {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <input
+              id="description"
               type="text"
               value={form.description}
               onChange={e => set('description', e.target.value)}
@@ -159,8 +163,9 @@ export default function TransactionForm({ transaction, onClose }: Props) {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select
+              id="category"
               value={form.category}
               onChange={e => set('category', e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
