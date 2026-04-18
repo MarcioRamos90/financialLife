@@ -1,10 +1,13 @@
-FROM node:22.14.0-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
+# Patch Alpine-level CVEs (openssl, musl, etc.)
+RUN apk upgrade --no-cache
+
 # Install dependencies first (cached layer)
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm install --prefer-offline
 
 # Source is mounted as a volume — no COPY needed for dev
 EXPOSE 5173
