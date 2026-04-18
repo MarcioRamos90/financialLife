@@ -39,6 +39,13 @@ func main() {
 	defer sqlDB.Close()
 	log.Info().Msg("database connection established and schema migrated")
 
+	// ── Dev seed ──────────────────────────────────────────────────────────────
+	if cfg.AppEnv != "production" {
+		if err := db.Seed(gormDB); err != nil {
+			log.Fatal().Err(err).Msg("failed to seed database")
+		}
+	}
+
 	// ── HTTP Server ───────────────────────────────────────────────────────────
 	r := router.New(cfg, gormDB)
 	addr := fmt.Sprintf(":%s", cfg.APIPort)
