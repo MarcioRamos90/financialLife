@@ -190,15 +190,27 @@ export default function TransactionForm({ transaction, onClose }: Props) {
             </div>
           )}
 
-          {/* Joint */}
-          <label className="flex items-center gap-2 cursor-pointer">
+          {/* Joint / Transfer pool label */}
+          <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={form.is_joint}
               onChange={e => set('is_joint', e.target.checked)}
-              className="w-4 h-4 text-blue-600"
+              className="mt-0.5 w-4 h-4 text-blue-600"
             />
-            <span className="text-sm text-gray-700">Shared household expense</span>
+            <span className="text-sm text-gray-700">
+              {form.type === 'transfer' ? (
+                <>
+                  <span className="font-medium">Moving to joint account</span>
+                  <span className="block text-gray-400">Check to move money from your personal pool into the joint account. Uncheck to withdraw from joint into your personal pool.</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-medium">Shared household</span>
+                  <span className="block text-gray-400">This transaction belongs to the joint account pool.</span>
+                </>
+              )}
+            </span>
           </label>
 
           {error && (

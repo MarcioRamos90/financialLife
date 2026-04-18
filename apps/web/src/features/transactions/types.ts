@@ -18,9 +18,11 @@ export interface Transaction {
   is_joint: boolean
   payment_method_id: string | null
   payment_method_name: string | null
+  income_source_id: string | null
   transaction_date: string  // "YYYY-MM-DD"
   created_at: string
   updated_at: string
+  deleted_at?: string | null
 }
 
 export interface TransactionFormData {

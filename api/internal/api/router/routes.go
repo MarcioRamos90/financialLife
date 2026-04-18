@@ -31,8 +31,9 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	}))
 
 	// ── Dependencies ──────────────────────────────────────────────────────────
-	userRepo := repository.NewUserRepository(db)
-	txRepo   := repository.NewTransactionRepository(db)
+	userRepo   := repository.NewUserRepository(db)
+	txRepo     := repository.NewTransactionRepository(db)
+	incomeRepo := repository.NewIncomeRepository(db)
 
 	authSvc, err := service.NewAuthService(
 		userRepo, cfg.JWTSecret,
@@ -41,10 +42,12 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	if err != nil {
 		panic("failed to init auth service: " + err.Error())
 	}
-	txSvc := service.NewTransactionService(txRepo)
+	txSvc     := service.NewTransactionService(txRepo)
+	incomeSvc := service.NewIncomeService(incomeRepo)
 
-	authHandler := handlers.NewAuthHandler(authSvc)
-	txHandler   := handlers.NewTransactionHandler(txSvc)
+	authHandler   := handlers.NewAuthHandler(authSvc)
+	txHandler     := handlers.NewTransactionHandler(txSvc)
+	incomeHandler := handlers.NewIncomeHandler(incomeSvc)
 
 	// ── Health ────────────────────────────────────────────────────────────────
 	r.Get("/health", handlers.Health)
@@ -78,9 +81,13 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 			r.Delete("/transactions/{id}",            txHandler.Delete)
 			r.Get("/transactions/payment-methods",    txHandler.ListPaymentMethods)
 
-			// TODO Week 4
-			r.Get("/income-sources",  http.NotFound)
-			r.Post("/income-sources", http.NotFound)
+			// Income sources
+			r.Get("/income-sources",                        incomeHandler.ListSources)
+			r.Post("/income-sources",                       incomeHandler.CreateSource)
+			r.Put("/income-sources/{id}",                   incomeHandler.UpdateSource)
+			r.Delete("/income-sources/{id}",                incomeHandler.DeleteSource)
+			r.Post("/income-sources/{id}/entries",          incomeHandler.RecordEntry)
+			r.Get("/income-sources/{id}/history",           incomeHandler.ListHistory)
 
 			// TODO Week 5
 			r.Get("/allocations/rules",   http.NotFound)

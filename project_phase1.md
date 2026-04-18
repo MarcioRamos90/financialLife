@@ -4,6 +4,21 @@
 **Duration:** ~6 weeks  
 **Stack:** React 18 + TypeScript · Go 1.25 · PostgreSQL 16 · Docker Compose
 
+### Money model (applies across all weeks)
+
+The household has **three pools of money**:
+
+| Pool | Owned by | Description |
+|------|----------|-------------|
+| Personal — Marcio | Marcio | His own income and expenses |
+| Personal — Wife | Wife | Her own income and expenses |
+| Joint | Both | Shared account for household expenses |
+
+**How money moves:**
+- Each user records income and expenses against their **personal** pool or marks them as **joint** (`is_joint = true`), which hits the joint pool.
+- A **transfer** transaction moves money between a personal pool and the joint pool (e.g. Marcio contributes R$2 000 to the joint account, or withdraws R$500 back to his personal account).
+- The allocation engine (Week 5) works on the **surplus** of each pool independently, then can redistribute across pools via transfer rules.
+
 ---
 
 ## Week 1 — Project Scaffold
@@ -65,6 +80,8 @@ Both users can record, edit, and delete income and expense transactions. List up
 
 ## Week 4 — Income Sources
 
+Each user has their own income streams (salary, freelance, etc.). Income can be personal or marked as joint (goes straight into the joint pool). Users can also transfer money between their personal pool and the joint pool at any time.
+
 ### Tasks
 - [ ] Write migration `004_income.up.sql` — `income_sources` and `income_entries` tables
 - [ ] Implement API endpoints:
@@ -74,12 +91,13 @@ Both users can record, edit, and delete income and expense transactions. List up
   - `DELETE /api/v1/income-sources/:id`
   - `POST /api/v1/income-sources/:id/entries` — record a specific month's receipt
   - `GET /api/v1/income-sources/:id/history`
-- [ ] Build React `IncomeSourceList` page — card per source, YTD vs. expected
-- [ ] Build `IncomeSourceForm` — name, category, default amount, recurrence day
+- [ ] Build React `IncomeSourceList` page — card per source, YTD vs. expected, split by personal vs. joint
+- [ ] Build `IncomeSourceForm` — name, category, default amount, recurrence day, **is_joint flag**
 - [ ] Build `RecordEntryDrawer` — quick form to log this month's actual amount received
+- [ ] Ensure `TransactionForm` clearly supports **transfer** type for personal ↔ joint pool movements
 
 ### Deliverable
-Each user can define their income streams and record what they actually received each month.
+Each user can define their income streams (personal or joint), record what they actually received each month, and move money between their personal pool and the joint pool via transfer transactions.
 
 ---
 
