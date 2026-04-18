@@ -49,8 +49,8 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	// ── Health ────────────────────────────────────────────────────────────────
 	r.Get("/health", handlers.Health)
 
-	// ── Test helpers (only available when APP_ENV=test) ───────────────────────
-	if cfg.AppEnv == "test" {
+	// ── Test helpers (not available in production) ───────────────────────────
+	if cfg.AppEnv != "production" {
 		r.Post("/api/v1/test/reset", handlers.NewTestResetHandler(db))
 	}
 

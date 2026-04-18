@@ -13,19 +13,11 @@ import (
 // re-seeds the two dev users. Must only be registered when APP_ENV=test.
 func NewTestResetHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Wipe in reverse FK order
-		tables := []any{
-			&model.Transaction{},
-			&model.PaymentMethod{},
-			&model.RefreshToken{},
-			&model.User{},
-			&model.Household{},
-		}
-		for _, t := range tables {
-			if err := db.Unscoped().Where("1 = 1").Delete(t).Error; err != nil {
-				jsonError(w, "reset failed: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
+		// Truncate all tables in one shot; CASCADE handles FK order automatically.
+		sql := "TRUNCATE TABLE transactions, payment_methods, refresh_tokens, users, households RESTART IDENTITY CASCADE"
+		if err := db.Exec(sql).Error; err != nil {
+			jsonError(w, "reset failed: "+err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		// Re-seed
