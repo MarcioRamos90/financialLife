@@ -47,7 +47,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
 }
 
-async function request<T>(path: string, options: RequestOptions = {}, retry = true): Promise<T> {
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, headers: extraHeaders, ...rest } = options
 
   const headers: Record<string, string> = {
@@ -66,14 +66,15 @@ async function request<T>(path: string, options: RequestOptions = {}, retry = tr
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  // Auto-refresh on 401 then retry once
-  if (res.status === 401 && retry) {
+  // Auto-refresh on 401 then retry once — only for authenticated requests.
+  // Unauthenticated requests (e.g. login) getting a 401 are a normal failure.
+  if (res.status === 401 && accessToken) {
     const newToken = await refreshAccessToken()
     if (!newToken) {
       window.location.href = '/login'
       throw new Error('Session expired')
     }
-    return request<T>(path, options, false)
+    return request<T>(path, options)
   }
 
   if (!res.ok) {
@@ -90,11 +91,11 @@ async function request<T>(path: string, options: RequestOptions = {}, retry = tr
 // ─── Convenience methods ──────────────────────────────────────────────────────
 
 const api = {
-  get:    <T>(path: string, opts?: RequestOptions)         => request<T>(path, { ...opts, method: 'GET' }),
-  post:   <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'POST', body }),
-  put:    <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'PUT', body }),
-  patch:  <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'PATCH', body }),
-  delete: <T>(path: string, opts?: RequestOptions)         => request<T>(path, { ...opts, method: 'DELETE' }),
+  get: <T>(path: string, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'GET' }),
+  post: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'POST', body }),
+  put: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'PUT', body }),
+  patch: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'PATCH', body }),
+  delete: <T>(path: string, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'DELETE' }),
 }
 
 export default api
