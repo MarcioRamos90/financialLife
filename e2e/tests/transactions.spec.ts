@@ -58,9 +58,9 @@ test.describe.serial('transactions', () => {
     await expect(page.getByText('Bus pass')).toBeVisible();
 
     await page.getByRole('row', { name: /bus pass/i }).getByRole('button', { name: /delete/i }).click();
-    await page.getByRole('button', { name: /confirm|yes|delete/i }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /delete/i }).click();
 
-    await expect(page.getByText('Bus pass')).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Bus pass' })).not.toBeVisible();
   });
 
   test('filters by type shows only matching transactions', async ({ page }) => {
@@ -71,12 +71,12 @@ test.describe.serial('transactions', () => {
       await openNewForm(page);
       await fillForm(page, { amount, description: desc, date: '2025-01-15', type });
       await page.getByRole('button', { name: /add transaction/i }).click();
-      await expect(page.getByText(desc)).toBeVisible();
+      await expect(page.getByRole('cell', { name: desc })).toBeVisible();
     }
 
     await page.getByRole('combobox', { name: /filter by type/i }).selectOption('income');
 
-    await expect(page.getByText('Salary')).toBeVisible();
-    await expect(page.getByText('Rent')).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Salary' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Rent' })).not.toBeVisible();
   });
 });
