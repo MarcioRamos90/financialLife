@@ -13,13 +13,12 @@ export default defineConfig({
     host: '0.0.0.0',   // required for Docker
     port: 5173,
     proxy: {
-      // Proxy /api calls to the Go backend during development
       '/api': {
-        target: 'http://api:8080',
+        target: process.env.VITE_API_URL ?? 'http://localhost:8080',
         changeOrigin: true,
       },
       '/health': {
-        target: 'http://api:8080',
+        target: process.env.VITE_API_URL ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },
