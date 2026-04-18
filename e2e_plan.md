@@ -60,8 +60,8 @@ A `globalSetup.ts` script connects to PostgreSQL and runs seed SQL before the su
 The reset endpoint will:
 1. Truncate all tables (transactions, refresh_tokens, users, households)
 2. Re-seed with one household and two users:
-   - `marcio@home.local` / `password` / role: admin
-   - `wife@home.local` / `password` / role: admin
+   - `marcio@home.local` / role: admin
+   - `wife@home.local` / role: admin
 
 ---
 

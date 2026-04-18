@@ -89,7 +89,7 @@ curl http://localhost:8080/health
 # Test login endpoint
 curl -s -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"marcio@home.local","password":"password"}' | jq
+  -d '{"email":"marcio@home.local","password":"<your-dev-password>"}' | jq
 
 # Test /me endpoint (replace TOKEN with the access_token from login)
 curl -s http://localhost:8080/api/v1/auth/me \

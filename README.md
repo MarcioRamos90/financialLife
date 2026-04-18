@@ -23,10 +23,10 @@ curl http://localhost:8080/health
 ```
 
 **Dev users (seeded automatically):**
-| Email | Password | Role |
-|---|---|---|
-| marcio@home.local | password | admin |
-| wife@home.local | password | admin |
+| Email | Role |
+|---|---|
+| marcio@home.local | admin |
+| wife@home.local | admin |
 
 ---
 

@@ -18,8 +18,8 @@ import (
 // Seeds holds the IDs and credentials inserted during DB setup.
 type Seeds struct {
 	HouseholdID string
-	UserID      string // marcio@test.local  / password: "password"
-	UserID2     string // partner@test.local / password: "password"
+	UserID      string // marcio@test.local
+	UserID2     string // partner@test.local
 	Email       string
 	Email2      string
 }

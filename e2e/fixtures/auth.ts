@@ -3,11 +3,11 @@ import { Page } from '@playwright/test';
 export const TEST_USERS = {
   admin: {
     email: process.env.TEST_USER_EMAIL ?? 'marcio@home.local',
-    password: process.env.TEST_USER_PASSWORD ?? 'password',
+    password: process.env.TEST_USER_PASSWORD ?? '',
   },
   member: {
     email: process.env.TEST_USER2_EMAIL ?? 'wife@home.local',
-    password: process.env.TEST_USER2_PASSWORD ?? 'password',
+    password: process.env.TEST_USER2_PASSWORD ?? '',
   },
 };
 
