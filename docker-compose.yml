@@ -38,11 +38,11 @@ services:
     # Air provides hot-reload; installed inside the container
     command: air -c .air.toml
 
-  frontend:
+  web:
     build:
-      context: ./frontend
+      context: ./apps/web
       dockerfile: Dockerfile.dev
-    container_name: financiallife_frontend
+    container_name: financiallife_web
     restart: unless-stopped
     depends_on:
       - api
@@ -50,7 +50,7 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend:/app
+      - ./apps/web:/app
       - /app/node_modules   # anonymous volume keeps container node_modules isolated
     command: npm run dev -- --host
 

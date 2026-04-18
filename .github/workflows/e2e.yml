@@ -1,0 +1,103 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    env:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: financiallife_test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      JWT_SECRET: test-secret-for-ci
+      JWT_ACCESS_TOKEN_EXPIRY: 15m
+      JWT_REFRESH_TOKEN_EXPIRY: 720h
+      APP_ENV: test
+      API_PORT: 8080
+      CORS_ALLOWED_ORIGIN: http://localhost:5173
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: financiallife_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start API
+        working-directory: api
+        run: |
+          go build -o ./bin/server ./cmd/server
+          ./bin/server &
+        env:
+          DB_HOST: localhost
+
+      - name: Wait for API to be ready
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8080/health && break
+            echo "Waiting for API... ($i)"
+            sleep 2
+          done
+
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Start web
+        working-directory: apps/web
+        run: npm run dev -- --host &
+
+      - name: Wait for web to be ready
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5173 && break
+            echo "Waiting for web... ($i)"
+            sleep 2
+          done
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: e2e
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost:5173
+          API_URL: http://localhost:8080
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
