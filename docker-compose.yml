@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "0.0.0.0:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +32,7 @@ services:
     environment:
       DB_HOST: postgres
     ports:
-      - "8080:8080"
+      - "0.0.0.0:8080:8080"
     volumes:
       - ./api:/app
     # Air provides hot-reload; installed inside the container
@@ -50,7 +50,7 @@ services:
     environment:
       - VITE_API_URL=http://api:8080
     ports:
-      - "5173:5173"
+      - "0.0.0.0:5173:5173"
     volumes:
       - ./apps/web:/app
       - /app/node_modules   # anonymous volume keeps container node_modules isolated
