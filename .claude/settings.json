@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"Before finishing: did this session introduce new commands, API endpoints, architectural patterns, data-testid conventions, or environment variables not yet reflected in CLAUDE.md? If yes, update CLAUDE.md now.\"}'",
+            "statusMessage": "Checking if CLAUDE.md needs updating..."
+          }
+        ]
+      }
+    ]
+  }
+}
