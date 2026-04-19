@@ -72,6 +72,17 @@ func (r *UserRepository) RevokeRefreshToken(ctx context.Context, tokenHash strin
 	return nil
 }
 
+// ListByHousehold returns all non-deleted users belonging to the household.
+func (r *UserRepository) ListByHousehold(ctx context.Context, householdID string) ([]model.User, error) {
+	var users []model.User
+	if err := r.db.WithContext(ctx).
+		Where("household_id = ?", householdID).
+		Find(&users).Error; err != nil {
+		return nil, fmt.Errorf("ListByHousehold: %w", err)
+	}
+	return users, nil
+}
+
 // RevokeAllUserTokens revokes every active refresh token for a user.
 func (r *UserRepository) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	now := time.Now().UTC()

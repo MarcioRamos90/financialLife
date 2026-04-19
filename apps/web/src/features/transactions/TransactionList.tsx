@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useTransactions, useDeleteTransaction } from './useTransactions'
+import { useTransactions, useDeleteTransaction, useExportTransactions, useExportTransactionTemplate, useImportTransactions } from './useTransactions'
 import TransactionForm from './TransactionForm'
+import ImportExportToolbar from '../../components/ImportExportToolbar'
 import type { Transaction, TransactionFilters } from './types'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './types'
 
@@ -12,6 +13,9 @@ export default function TransactionList() {
 
   const { data: transactions = [], isLoading, isError } = useTransactions(filters)
   const deleteMutation = useDeleteTransaction()
+  const { download: exportDownload } = useExportTransactions(filters)
+  const { download: templateDownload } = useExportTransactionTemplate()
+  const importMutation = useImportTransactions()
 
   const setFilter = (key: keyof TransactionFilters, value: string) =>
     setFilters(f => ({ ...f, [key]: value || undefined }))
@@ -38,12 +42,20 @@ export default function TransactionList() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Top bar */}
-      <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div className="bg-white border-b px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-blue-900">Transactions</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-800 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
-        >+ New transaction</button>
+        <div className="flex items-center gap-2">
+          <ImportExportToolbar
+            onExport={exportDownload}
+            onImport={file => importMutation.mutateAsync(file)}
+            onDownloadTemplate={templateDownload}
+            isImporting={importMutation.isPending}
+          />
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-800 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          >+ New transaction</button>
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto p-6 space-y-4">

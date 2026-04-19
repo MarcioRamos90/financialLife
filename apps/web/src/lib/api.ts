@@ -88,6 +88,57 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return res.json() as Promise<T>
 }
 
+// ─── Binary download helper ───────────────────────────────────────────────────
+
+async function getBlob(path: string, params?: URLSearchParams): Promise<Blob> {
+  const url = `${BASE_URL}${path}${params?.toString() ? `?${params}` : ''}`
+  const headers: Record<string, string> = {}
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
+
+  const res = await fetch(url, { credentials: 'include', headers })
+
+  if (res.status === 401 && accessToken) {
+    const newToken = await refreshAccessToken()
+    if (!newToken) {
+      window.location.href = '/login'
+      throw new Error('Session expired')
+    }
+    return getBlob(path, params)
+  }
+
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`)
+  return res.blob()
+}
+
+// ─── Multipart upload helper ──────────────────────────────────────────────────
+
+async function postForm<T>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: form,
+  })
+
+  if (res.status === 401 && accessToken) {
+    const newToken = await refreshAccessToken()
+    if (!newToken) {
+      window.location.href = '/login'
+      throw new Error('Session expired')
+    }
+    return postForm<T>(path, form)
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error(err.error ?? `Upload failed: ${res.status}`)
+  }
+  return res.json() as Promise<T>
+}
+
 // ─── Convenience methods ──────────────────────────────────────────────────────
 
 const api = {
@@ -96,6 +147,8 @@ const api = {
   put: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'PUT', body }),
   patch: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'PATCH', body }),
   delete: <T>(path: string, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'DELETE' }),
+  getBlob,
+  postForm,
 }
 
 export default api

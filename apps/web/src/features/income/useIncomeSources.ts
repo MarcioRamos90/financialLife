@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
 import type { IncomeSource, IncomeEntry, IncomeSourceFormData, IncomeEntryFormData } from './types'
+import type { ImportResult } from '../../types/importexport'
 
 const KEYS = {
   all:     ['income-sources'] as const,
@@ -61,6 +62,46 @@ export function useDeleteIncomeSource() {
     mutationFn: (id: string) => api.delete(`/income-sources/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   })
+}
+
+// ─── Import / Export ──────────────────────────────────────────────────────────
+
+export function useExportIncomeSources() {
+  const download = async () => {
+    const blob = await api.getBlob('/income-sources/export')
+    triggerIncomeDownload(blob, 'income-sources.xlsx')
+  }
+  return { download }
+}
+
+export function useExportIncomeSourceTemplate() {
+  const download = async () => {
+    const blob = await api.getBlob('/income-sources/export/template')
+    triggerIncomeDownload(blob, 'income-sources-template.xlsx')
+  }
+  return { download }
+}
+
+export function useImportIncomeSources() {
+  const qc = useQueryClient()
+  return useMutation<ImportResult, Error, File>({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api.postForm<{ data: ImportResult }>('/income-sources/import', form)
+        .then(r => r.data)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
+  })
+}
+
+function triggerIncomeDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export function useRecordIncomeEntry() {

@@ -45,9 +45,10 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	txSvc     := service.NewTransactionService(txRepo)
 	incomeSvc := service.NewIncomeService(incomeRepo)
 
-	authHandler   := handlers.NewAuthHandler(authSvc)
-	txHandler     := handlers.NewTransactionHandler(txSvc)
-	incomeHandler := handlers.NewIncomeHandler(incomeSvc)
+	authHandler         := handlers.NewAuthHandler(authSvc)
+	txHandler           := handlers.NewTransactionHandler(txSvc)
+	incomeHandler       := handlers.NewIncomeHandler(incomeSvc)
+	importExportHandler := handlers.NewImportExportHandler(txSvc, incomeSvc, userRepo, txRepo)
 
 	// ── Health ────────────────────────────────────────────────────────────────
 	r.Get("/health", handlers.Health)
@@ -74,16 +75,22 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 			// Auth
 			r.Get("/auth/me", authHandler.Me)
 
-			// Transactions
-			r.Get("/transactions",                    txHandler.List)
-			r.Post("/transactions",                   txHandler.Create)
-			r.Put("/transactions/{id}",               txHandler.Update)
-			r.Delete("/transactions/{id}",            txHandler.Delete)
-			r.Get("/transactions/payment-methods",    txHandler.ListPaymentMethods)
+			// Transactions — static routes before {id} to avoid Chi matching export/import as a param
+			r.Get("/transactions",                          txHandler.List)
+			r.Post("/transactions",                         txHandler.Create)
+			r.Get("/transactions/payment-methods",          txHandler.ListPaymentMethods)
+			r.Get("/transactions/export",                   importExportHandler.ExportTransactions)
+			r.Get("/transactions/export/template",          importExportHandler.TransactionTemplate)
+			r.Post("/transactions/import",                  importExportHandler.ImportTransactions)
+			r.Put("/transactions/{id}",                     txHandler.Update)
+			r.Delete("/transactions/{id}",                  txHandler.Delete)
 
-			// Income sources
+			// Income sources — static routes before {id}
 			r.Get("/income-sources",                        incomeHandler.ListSources)
 			r.Post("/income-sources",                       incomeHandler.CreateSource)
+			r.Get("/income-sources/export",                 importExportHandler.ExportIncomeSources)
+			r.Get("/income-sources/export/template",        importExportHandler.IncomeSourceTemplate)
+			r.Post("/income-sources/import",                importExportHandler.ImportIncomeSources)
 			r.Put("/income-sources/{id}",                   incomeHandler.UpdateSource)
 			r.Delete("/income-sources/{id}",                incomeHandler.DeleteSource)
 			r.Post("/income-sources/{id}/entries",          incomeHandler.RecordEntry)

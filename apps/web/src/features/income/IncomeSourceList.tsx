@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useIncomeSources, useDeleteIncomeSource } from './useIncomeSources'
+import { useIncomeSources, useDeleteIncomeSource, useExportIncomeSources, useExportIncomeSourceTemplate, useImportIncomeSources } from './useIncomeSources'
 import IncomeSourceForm from './IncomeSourceForm'
 import RecordEntryDrawer from './RecordEntryDrawer'
+import ImportExportToolbar from '../../components/ImportExportToolbar'
 import type { IncomeSource } from './types'
 
 export default function IncomeSourceList() {
@@ -12,6 +13,9 @@ export default function IncomeSourceList() {
 
   const { data: sources = [], isLoading, isError } = useIncomeSources()
   const deleteMutation = useDeleteIncomeSource()
+  const { download: exportDownload } = useExportIncomeSources()
+  const { download: templateDownload } = useExportIncomeSourceTemplate()
+  const importMutation = useImportIncomeSources()
 
   const personalSources = sources.filter(s => !s.is_joint)
   const jointSources    = sources.filter(s =>  s.is_joint)
@@ -28,12 +32,20 @@ export default function IncomeSourceList() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Top bar */}
-      <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div className="bg-white border-b px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-blue-900">Income Sources</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-800 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
-        >+ New source</button>
+        <div className="flex items-center gap-2">
+          <ImportExportToolbar
+            onExport={exportDownload}
+            onImport={file => importMutation.mutateAsync(file)}
+            onDownloadTemplate={templateDownload}
+            isImporting={importMutation.isPending}
+          />
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-800 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          >+ New source</button>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-6 space-y-6">
