@@ -51,6 +51,8 @@ func NewDB(t *testing.T) (*gorm.DB, Seeds) {
 		&model.RefreshToken{},
 		&model.PaymentMethod{},
 		&model.Transaction{},
+		&model.IncomeSource{},
+		&model.IncomeEntry{},
 	); err != nil {
 		t.Fatalf("AutoMigrate: %v", err)
 	}

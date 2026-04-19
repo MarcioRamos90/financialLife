@@ -21,28 +21,32 @@ import (
 // ─── Shared test environment ──────────────────────────────────────────────────
 
 type testEnv struct {
-	db    *gorm.DB
-	seeds testutil.Seeds
-	auth  *service.AuthService
-	tx    *service.TransactionService
-	srv   http.Handler
+	db     *gorm.DB
+	seeds  testutil.Seeds
+	auth   *service.AuthService
+	tx     *service.TransactionService
+	income *service.IncomeService
+	srv    http.Handler
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	db, seeds := testutil.NewDB(t)
 
-	userRepo := repository.NewUserRepository(db)
-	txRepo := repository.NewTransactionRepository(db)
+	userRepo   := repository.NewUserRepository(db)
+	txRepo     := repository.NewTransactionRepository(db)
+	incomeRepo := repository.NewIncomeRepository(db)
 
 	authSvc, err := service.NewAuthService(userRepo, "test-secret-32-characters-long!!", "15m", "720h")
 	if err != nil {
 		t.Fatalf("NewAuthService: %v", err)
 	}
-	txSvc := service.NewTransactionService(txRepo)
+	txSvc     := service.NewTransactionService(txRepo)
+	incomeSvc := service.NewIncomeService(incomeRepo)
 
-	authH := NewAuthHandler(authSvc)
-	txH := NewTransactionHandler(txSvc)
+	authH   := NewAuthHandler(authSvc)
+	txH     := NewTransactionHandler(txSvc)
+	incomeH := NewIncomeHandler(incomeSvc)
 
 	r := chi.NewRouter()
 	r.Post("/auth/login", authH.Login)
@@ -56,9 +60,15 @@ func newTestEnv(t *testing.T) *testEnv {
 		r.Put("/transactions/{id}", txH.Update)
 		r.Delete("/transactions/{id}", txH.Delete)
 		r.Get("/transactions/payment-methods", txH.ListPaymentMethods)
+		r.Get("/income-sources", incomeH.ListSources)
+		r.Post("/income-sources", incomeH.CreateSource)
+		r.Put("/income-sources/{id}", incomeH.UpdateSource)
+		r.Delete("/income-sources/{id}", incomeH.DeleteSource)
+		r.Post("/income-sources/{id}/entries", incomeH.RecordEntry)
+		r.Get("/income-sources/{id}/history", incomeH.ListHistory)
 	})
 
-	return &testEnv{db: db, seeds: seeds, auth: authSvc, tx: txSvc, srv: r}
+	return &testEnv{db: db, seeds: seeds, auth: authSvc, tx: txSvc, income: incomeSvc, srv: r}
 }
 
 // login calls POST /auth/login and returns the access token and response cookies.
