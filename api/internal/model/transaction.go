@@ -67,6 +67,7 @@ type CreateTransactionRequest struct {
 	Category        string  `json:"category"`
 	IsJoint         bool    `json:"is_joint"`
 	PaymentMethodID *string `json:"payment_method_id"`
+	IncomeSourceID  *string `json:"income_source_id"` // optional link to an IncomeSource
 	TransactionDate string  `json:"transaction_date"` // "YYYY-MM-DD"
 }
 
@@ -78,6 +79,7 @@ type UpdateTransactionRequest struct {
 	Category        string  `json:"category"`
 	IsJoint         bool    `json:"is_joint"`
 	PaymentMethodID *string `json:"payment_method_id"`
+	IncomeSourceID  *string `json:"income_source_id"` // optional link to an IncomeSource
 	TransactionDate string  `json:"transaction_date"`
 }
 

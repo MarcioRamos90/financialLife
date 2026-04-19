@@ -79,6 +79,7 @@ func (r *TransactionRepository) Create(ctx context.Context, householdID, userID 
 		Category:        req.Category,
 		IsJoint:         req.IsJoint,
 		PaymentMethodID: req.PaymentMethodID,
+		IncomeSourceID:  req.IncomeSourceID,
 		TransactionDate: req.TransactionDate,
 	}
 	if err := r.db.WithContext(ctx).Create(&tx).Error; err != nil {
@@ -99,6 +100,7 @@ func (r *TransactionRepository) Update(ctx context.Context, id, householdID stri
 			"category":          req.Category,
 			"is_joint":          req.IsJoint,
 			"payment_method_id": req.PaymentMethodID,
+			"income_source_id":  req.IncomeSourceID,
 			"transaction_date":  req.TransactionDate,
 		})
 	if result.Error != nil {

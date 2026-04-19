@@ -33,6 +33,7 @@ export interface TransactionFormData {
   category: string
   is_joint: boolean
   payment_method_id: string
+  income_source_id: string   // empty string = no link; source ID = linked
   transaction_date: string
 }
 
