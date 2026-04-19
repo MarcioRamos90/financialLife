@@ -64,7 +64,7 @@ export default function RecordEntryDrawer({ source, onClose }: Props) {
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 flex flex-col">
+      <div data-testid="record-entry-drawer" className="fixed right-0 top-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -198,6 +198,7 @@ export default function RecordEntryDrawer({ source, onClose }: Props) {
             className="flex-1 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
           >Cancel</button>
           <button
+            data-testid="btn-submit-entry"
             onClick={handleSubmit}
             disabled={recordMutation.isPending}
             className="flex-1 py-2 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-60 text-white text-sm font-medium"

@@ -67,7 +67,7 @@ export default function IncomeSourceList() {
 
         {/* Personal sources */}
         {personalSources.length > 0 && (
-          <section>
+          <section data-testid="section-personal">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Personal</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {personalSources.map(s => (
@@ -85,7 +85,7 @@ export default function IncomeSourceList() {
 
         {/* Joint sources */}
         {jointSources.length > 0 && (
-          <section>
+          <section data-testid="section-joint">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Joint account</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {jointSources.map(s => (
@@ -155,7 +155,7 @@ interface CardProps {
 
 function SourceCard({ source, onEdit, onRecord, onDelete }: CardProps) {
   return (
-    <div className="bg-white rounded-xl border p-4 flex flex-col gap-3">
+    <div data-testid="source-card" className="bg-white rounded-xl border p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-semibold text-gray-800">{source.name}</p>
@@ -175,14 +175,17 @@ function SourceCard({ source, onEdit, onRecord, onDelete }: CardProps) {
 
       <div className="flex items-center gap-2">
         <button
+          data-testid="btn-record-entry"
           onClick={onRecord}
           className="flex-1 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-800 text-xs font-medium"
         >Record entry</button>
         <button
+          data-testid="btn-edit-source"
           onClick={onEdit}
           className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs"
         >Edit</button>
         <button
+          data-testid="btn-delete-source"
           onClick={onDelete}
           className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-red-50 text-red-500 text-xs"
         >Delete</button>

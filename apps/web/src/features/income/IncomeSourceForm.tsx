@@ -79,7 +79,7 @@ export default function IncomeSourceForm({ source, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+      <div data-testid="income-source-form" className="bg-white rounded-2xl shadow-xl w-full max-w-md">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -188,6 +188,7 @@ export default function IncomeSourceForm({ source, onClose }: Props) {
               className="flex-1 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
             >Cancel</button>
             <button
+              data-testid="btn-submit-source"
               type="submit" disabled={isLoading}
               className="flex-1 py-2 rounded-lg bg-blue-800 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium"
             >{isLoading ? 'Saving…' : source ? 'Save changes' : 'Add income source'}</button>
