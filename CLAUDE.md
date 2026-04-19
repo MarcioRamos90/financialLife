@@ -64,6 +64,8 @@ All API responses are wrapped: `{ "data": ... }` or `{ "error": "..." }` (see `m
 
 **JWT middleware** (HS256) protects all routes except `/auth/login`, `/auth/refresh`, `/auth/logout`. Access token lives 15 min in memory; refresh token lives 30 days in an httpOnly cookie.
 
+**Chi routing rule** — always register static path segments (`/export`, `/import`, `/payment-methods`) **before** parameterised routes (`/{id}`) on the same prefix, or Chi will match the literal segment as a path parameter and return 405.
+
 ### Frontend layers (apps/web/src/)
 
 ```
@@ -73,9 +75,12 @@ features/<name>/
   <Component>.tsx     UI components
 ```
 
-- API calls go through `src/lib/api.ts` — a thin fetch wrapper that stores the access token in memory, auto-refreshes on 401, and exposes `api.get / post / put / delete`.
+- API calls go through `src/lib/api.ts` — a thin fetch wrapper that stores the access token in memory, auto-refreshes on 401, and exposes `api.get / post / put / delete / getBlob / postForm`.
+  - `api.getBlob(path, params?)` — downloads a binary response (used for xlsx exports).
+  - `api.postForm<T>(path, formData)` — multipart upload (used for xlsx imports).
 - React Query keys are defined per-feature in `use*.ts`; mutations always call `invalidateQueries` on success.
 - Route guard: `PrivateRoute` redirects unauthenticated users to `/login`.
+- Shared UI components live in `src/components/` (e.g. `ImportExportToolbar`, `ImportResultModal`).
 
 ### Money model
 
@@ -89,7 +94,7 @@ The household has three pools:
 
 ### Testing strategy
 
-- **Go unit tests** — use `testutil.NewDB(t)` which creates an in-memory SQLite DB with schema and seeds (two users: `marcio@home.local` / `wife@home.local`, password `"password"`). No Docker required.
+- **Go unit tests** — use `testutil.NewDB(t)` which creates an in-memory SQLite DB with schema and seeds (two users: `marcio@home.local` / `wife@home.local`, password `"password"`). No Docker required. Service-level tests (e.g. import/export) instantiate the repository and service directly without an HTTP layer.
 - **React unit tests** — Vitest + Testing Library; hooks are mocked with `vi.spyOn`.
 - **E2E tests** — Playwright, single worker (sequential), `test.describe.serial`. Each suite calls `resetDB()` in `beforeEach` via `POST /api/v1/test/reset` (only available when `APP_ENV != "production"`).
 
