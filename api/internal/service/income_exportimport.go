@@ -82,10 +82,10 @@ func (s *IncomeService) ImportXLSX(
 	}
 	defer f.Close()
 
-	rows, err := f.GetRows(incomeSheet)
-	if err != nil {
-		return model.ImportResult{}, fmt.Errorf("sheet %q not found", incomeSheet)
+	if idx, _ := f.GetSheetIndex(incomeSheet); idx == -1 {
+		return model.ImportResult{}, fmt.Errorf("sheet named %q not found — please use the template", incomeSheet)
 	}
+	rows, _ := f.GetRows(incomeSheet)
 
 	usersByName := make(map[string]string)
 	for _, u := range users {
@@ -103,7 +103,7 @@ func (s *IncomeService) ImportXLSX(
 		existingSet[dupKey{strings.ToLower(src.Name), src.UserID}] = true
 	}
 
-	var result model.ImportResult
+	result := model.ImportResult{Errors: []model.ImportRowError{}}
 	for rowIdx, row := range rows {
 		if rowIdx == 0 {
 			continue

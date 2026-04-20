@@ -23,7 +23,7 @@ export default function ImportResultModal({ result, onClose }: Props) {
           .
         </p>
 
-        {result.errors.length > 0 && (
+        {(result.errors?.length ?? 0) > 0 && (
           <div>
             <p className="text-sm font-medium text-red-600 mb-2">{result.errors.length} row{result.errors.length !== 1 ? 's' : ''} could not be imported:</p>
             <div className="overflow-auto max-h-64 rounded-lg border border-red-100">

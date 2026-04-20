@@ -220,3 +220,34 @@ func TestImportIncomeSourcesEmptyFile(t *testing.T) {
 		t.Fatal("expected error for empty file bytes, got nil")
 	}
 }
+
+func TestImportIncomeSourcesWrongSheetName(t *testing.T) {
+	svc, seeds := newIncomeService(t)
+
+	// Build an xlsx with a sheet named something other than "Income Sources"
+	f := excelize.NewFile()
+	f.SetSheetName("Sheet1", "Planilha1")
+	f.SetCellValue("Planilha1", "A1", "Name")
+	f.SetCellValue("Planilha1", "A2", "Salary")
+	buf, _ := f.WriteToBuffer()
+
+	_, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, buf.Bytes(), nil)
+	if err == nil {
+		t.Fatal("expected error for wrong sheet name, got nil")
+	}
+}
+
+func TestImportIncomeSourcesErrorsIsNeverNil(t *testing.T) {
+	svc, seeds := newIncomeService(t)
+	data := buildIncomeXLSX(t, [][]any{
+		{"Salary", "Work", 5000.0, "BRL", 0, "no", ""},
+	})
+
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil)
+	if err != nil {
+		t.Fatalf("ImportXLSX: %v", err)
+	}
+	if result.Errors == nil {
+		t.Error("Errors field is nil; expected an initialised (non-nil) slice")
+	}
+}

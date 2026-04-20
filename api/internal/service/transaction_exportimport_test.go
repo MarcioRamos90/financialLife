@@ -261,6 +261,37 @@ func TestImportTransactionsEmptyFile(t *testing.T) {
 	}
 }
 
+func TestImportTransactionsWrongSheetName(t *testing.T) {
+	svc, seeds := newTxService(t)
+
+	// Build an xlsx with a sheet named something other than "Transactions"
+	f := excelize.NewFile()
+	f.SetSheetName("Sheet1", "Plan1")
+	f.SetCellValue("Plan1", "A1", "Date")
+	f.SetCellValue("Plan1", "A2", "2025-01-01")
+	buf, _ := f.WriteToBuffer()
+
+	_, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, buf.Bytes(), nil, nil)
+	if err == nil {
+		t.Fatal("expected error for wrong sheet name, got nil")
+	}
+}
+
+func TestImportTransactionsErrorsIsNeverNil(t *testing.T) {
+	svc, seeds := newTxService(t)
+	data := buildTxXLSX(t, [][]any{
+		{"2025-01-01", "expense", 100.0, "BRL", "Coffee", "Food", "no", "", ""},
+	})
+
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	if err != nil {
+		t.Fatalf("ImportXLSX: %v", err)
+	}
+	if result.Errors == nil {
+		t.Error("Errors field is nil; expected an initialised (non-nil) slice")
+	}
+}
+
 func TestImportTransactionsHouseholdIsolation(t *testing.T) {
 	svc, seeds := newTxService(t)
 	data := buildTxXLSX(t, [][]any{

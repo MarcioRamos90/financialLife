@@ -64,4 +64,11 @@ describe('ImportResultModal', () => {
     fireEvent.click(screen.getByTestId('btn-close-modal'))
     expect(onClose).toHaveBeenCalledOnce()
   })
+
+  it('does not crash when errors is null (legacy API response)', () => {
+    // Go nil slice marshals to JSON null; the modal must handle it gracefully
+    const nullErrors = { imported: 0, skipped: 0, errors: null } as unknown as ImportResult
+    expect(() => render(<ImportResultModal result={nullErrors} onClose={vi.fn()} />)).not.toThrow()
+    expect(screen.queryByTestId('error-table')).not.toBeInTheDocument()
+  })
 })

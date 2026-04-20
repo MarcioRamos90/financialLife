@@ -24,8 +24,12 @@ export default function ImportExportToolbar({
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = '' // reset so same file can be re-selected
-    const res = await onImport(file)
-    setResult(res)
+    try {
+      const res = await onImport(file)
+      setResult(res)
+    } catch {
+      setResult({ imported: 0, skipped: 0, errors: [{ row: 0, reason: 'Import failed. Please check the file and try again.' }] })
+    }
   }
 
   return (

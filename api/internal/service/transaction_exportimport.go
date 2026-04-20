@@ -91,10 +91,10 @@ func (s *TransactionService) ImportXLSX(
 	}
 	defer f.Close()
 
-	rows, err := f.GetRows(txSheet)
-	if err != nil {
-		return model.ImportResult{}, fmt.Errorf("sheet %q not found", txSheet)
+	if idx, _ := f.GetSheetIndex(txSheet); idx == -1 {
+		return model.ImportResult{}, fmt.Errorf("sheet named %q not found — please use the template", txSheet)
 	}
+	rows, _ := f.GetRows(txSheet)
 
 	usersByName := make(map[string]string)
 	for _, u := range users {
@@ -105,7 +105,7 @@ func (s *TransactionService) ImportXLSX(
 		pmByName[strings.ToLower(pm.Name)] = pm.ID
 	}
 
-	var result model.ImportResult
+	result := model.ImportResult{Errors: []model.ImportRowError{}}
 	for rowIdx, row := range rows {
 		if rowIdx == 0 {
 			continue // skip header

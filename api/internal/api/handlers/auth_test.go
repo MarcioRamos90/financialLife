@@ -47,6 +47,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	authH   := NewAuthHandler(authSvc)
 	txH     := NewTransactionHandler(txSvc)
 	incomeH := NewIncomeHandler(incomeSvc)
+	ieH     := NewImportExportHandler(txSvc, incomeSvc, userRepo, txRepo)
 
 	r := chi.NewRouter()
 	r.Post("/auth/login", authH.Login)
@@ -55,13 +56,21 @@ func newTestEnv(t *testing.T) *testEnv {
 	r.Group(func(r chi.Router) {
 		r.Use(apimiddleware.JWTAuth(authSvc))
 		r.Get("/auth/me", authH.Me)
+		// Static transaction routes must come before /{id} to avoid Chi matching them as params.
 		r.Get("/transactions", txH.List)
 		r.Post("/transactions", txH.Create)
+		r.Get("/transactions/payment-methods", txH.ListPaymentMethods)
+		r.Get("/transactions/export", ieH.ExportTransactions)
+		r.Get("/transactions/export/template", ieH.TransactionTemplate)
+		r.Post("/transactions/import", ieH.ImportTransactions)
 		r.Put("/transactions/{id}", txH.Update)
 		r.Delete("/transactions/{id}", txH.Delete)
-		r.Get("/transactions/payment-methods", txH.ListPaymentMethods)
+		// Static income-source routes before /{id}.
 		r.Get("/income-sources", incomeH.ListSources)
 		r.Post("/income-sources", incomeH.CreateSource)
+		r.Get("/income-sources/export", ieH.ExportIncomeSources)
+		r.Get("/income-sources/export/template", ieH.IncomeSourceTemplate)
+		r.Post("/income-sources/import", ieH.ImportIncomeSources)
 		r.Put("/income-sources/{id}", incomeH.UpdateSource)
 		r.Delete("/income-sources/{id}", incomeH.DeleteSource)
 		r.Post("/income-sources/{id}/entries", incomeH.RecordEntry)
