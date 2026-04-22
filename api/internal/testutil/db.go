@@ -18,6 +18,7 @@ import (
 // Seeds holds the IDs and credentials inserted during DB setup.
 type Seeds struct {
 	HouseholdID string
+	AccountID   string // default "Cash" account for the test household
 	UserID      string // marcio@test.local
 	UserID2     string // partner@test.local
 	Email       string
@@ -49,6 +50,7 @@ func NewDB(t *testing.T) (*gorm.DB, Seeds) {
 		&model.Household{},
 		&model.User{},
 		&model.RefreshToken{},
+		&model.Account{},
 		&model.PaymentMethod{},
 		&model.Transaction{},
 		&model.IncomeSource{},
@@ -66,6 +68,7 @@ func seedData(t *testing.T, db *gorm.DB) Seeds {
 
 	s := Seeds{
 		HouseholdID: uuid.New().String(),
+		AccountID:   uuid.New().String(),
 		UserID:      uuid.New().String(),
 		UserID2:     uuid.New().String(),
 		Email:       "marcio@test.local",
@@ -75,8 +78,20 @@ func seedData(t *testing.T, db *gorm.DB) Seeds {
 	// bcrypt hash of "password" at cost 10
 	const passwordHash = "$2b$10$GHk5DADWwtKXONzd.eSskuIose5LWOyDuz3CgncckKTMZdvp1bWf6"
 
-	if err := db.Create(&model.Household{ID: s.HouseholdID, Name: "Test Household"}).Error; err != nil {
+	if err := db.Create(&model.Household{ID: s.HouseholdID, Name: "Test Household", Currency: "BRL"}).Error; err != nil {
 		t.Fatalf("seed household: %v", err)
+	}
+
+	// Seed a default "Cash" account — every transaction must reference an account.
+	if err := db.Create(&model.Account{
+		ID:          s.AccountID,
+		HouseholdID: s.HouseholdID,
+		Name:        "Cash",
+		Type:        "cash",
+		IsJoint:     true,
+		Currency:    "BRL",
+	}).Error; err != nil {
+		t.Fatalf("seed account: %v", err)
 	}
 
 	users := []model.User{

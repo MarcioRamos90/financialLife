@@ -4,6 +4,7 @@ import LoginPage from './features/auth/LoginPage'
 import PrivateRoute from './features/auth/PrivateRoute'
 import TransactionList from './features/transactions/TransactionList'
 import IncomeSourceList from './features/income/IncomeSourceList'
+import AccountList from './features/accounts/AccountList'
 
 // ─── Shared layout with nav ───────────────────────────────────────────────────
 function Layout({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,12 @@ function Layout({ children }: { children: React.ReactNode }) {
               `text-sm ${isActive ? 'text-blue-800 font-medium' : 'text-gray-500 hover:text-gray-800'}`
             }
           >Income</NavLink>
+          <NavLink
+            to="/accounts"
+            className={({ isActive }) =>
+              `text-sm ${isActive ? 'text-blue-800 font-medium' : 'text-gray-500 hover:text-gray-800'}`
+            }
+          >Accounts</NavLink>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{user?.display_name}</span>
@@ -79,6 +86,7 @@ export default function App() {
                     <Route path="/dashboard"    element={<DashboardPage />} />
                     <Route path="/transactions" element={<TransactionList />} />
                     <Route path="/income"       element={<IncomeSourceList />} />
+                    <Route path="/accounts"     element={<AccountList />} />
                     <Route path="*"             element={<Navigate to="/transactions" replace />} />
                   </Routes>
                 </Layout>

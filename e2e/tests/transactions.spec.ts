@@ -22,6 +22,8 @@ test.describe.serial('transactions', () => {
     if (opts.type) {
       await page.getByRole('button', { name: opts.type, exact: true }).click();
     }
+    // Wait for the account picker to auto-select before filling the rest.
+    await expect(page.getByTestId('select-account')).not.toHaveValue('');
     await page.getByLabel('Amount').fill(opts.amount);
     await page.getByLabel('Description').fill(opts.description);
     await page.getByLabel('Date').fill(opts.date);

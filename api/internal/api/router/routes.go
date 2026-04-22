@@ -32,9 +32,10 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	}))
 
 	// ── Dependencies ──────────────────────────────────────────────────────────
-	userRepo   := repository.NewUserRepository(db)
-	txRepo     := repository.NewTransactionRepository(db)
-	incomeRepo := repository.NewIncomeRepository(db)
+	userRepo    := repository.NewUserRepository(db)
+	txRepo      := repository.NewTransactionRepository(db)
+	incomeRepo  := repository.NewIncomeRepository(db)
+	accountRepo := repository.NewAccountRepository(db)
 
 	authSvc, err := service.NewAuthService(
 		userRepo, cfg.JWTSecret,
@@ -43,13 +44,15 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	if err != nil {
 		panic("failed to init auth service: " + err.Error())
 	}
-	txSvc     := service.NewTransactionService(txRepo)
-	incomeSvc := service.NewIncomeService(incomeRepo)
+	txSvc      := service.NewTransactionService(txRepo)
+	incomeSvc  := service.NewIncomeService(incomeRepo)
+	accountSvc := service.NewAccountService(accountRepo)
 
 	authHandler         := handlers.NewAuthHandler(authSvc)
 	txHandler           := handlers.NewTransactionHandler(txSvc)
 	incomeHandler       := handlers.NewIncomeHandler(incomeSvc)
-	importExportHandler := handlers.NewImportExportHandler(txSvc, incomeSvc, userRepo, txRepo)
+	accountHandler      := handlers.NewAccountHandler(accountSvc)
+	importExportHandler := handlers.NewImportExportHandler(txSvc, incomeSvc, accountSvc, userRepo, txRepo)
 
 	// ── Health ────────────────────────────────────────────────────────────────
 	r.Get("/health", handlers.Health)
@@ -96,6 +99,14 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 			r.Delete("/income-sources/{id}",                incomeHandler.DeleteSource)
 			r.Post("/income-sources/{id}/entries",          incomeHandler.RecordEntry)
 			r.Get("/income-sources/{id}/history",           incomeHandler.ListHistory)
+
+			// Accounts — static routes before {id}
+			r.Get("/accounts",                accountHandler.List)
+			r.Post("/accounts",               accountHandler.Create)
+			r.Get("/accounts/{id}",           accountHandler.GetByID)
+			r.Get("/accounts/{id}/balance",   accountHandler.Balance)
+			r.Put("/accounts/{id}",           accountHandler.Update)
+			r.Delete("/accounts/{id}",        accountHandler.Archive)
 
 			// TODO Week 5
 			r.Get("/allocations/rules",   http.NotFound)

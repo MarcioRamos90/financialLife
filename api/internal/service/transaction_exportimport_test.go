@@ -70,9 +70,9 @@ func TestExportTransactionsData(t *testing.T) {
 	ctx := context.Background()
 
 	for _, req := range []model.CreateTransactionRequest{
-		{Type: "expense", Amount: 100, Description: "Coffee", Category: "Food", TransactionDate: "2025-01-01"},
-		{Type: "income",  Amount: 5000, Description: "Salary", Category: "Work", TransactionDate: "2025-01-05"},
-		{Type: "expense", Amount: 50, IsJoint: true, TransactionDate: "2025-01-10"},
+		{AccountID: seeds.AccountID, Type: "expense", Amount: 100, Description: "Coffee", Category: "Food", TransactionDate: "2025-01-01"},
+		{AccountID: seeds.AccountID, Type: "income",  Amount: 5000, Description: "Salary", Category: "Work", TransactionDate: "2025-01-05"},
+		{AccountID: seeds.AccountID, Type: "expense", Amount: 50, IsJoint: true, TransactionDate: "2025-01-10"},
 	} {
 		if _, err := svc.Create(ctx, seeds.HouseholdID, seeds.UserID, req); err != nil {
 			t.Fatalf("Create: %v", err)
@@ -100,8 +100,8 @@ func TestExportTransactionsFiltersApplied(t *testing.T) {
 	ctx := context.Background()
 
 	for _, req := range []model.CreateTransactionRequest{
-		{Type: "expense", Amount: 10, TransactionDate: "2025-01-01"},
-		{Type: "expense", Amount: 20, TransactionDate: "2025-03-01"},
+		{AccountID: seeds.AccountID, Type: "expense", Amount: 10, TransactionDate: "2025-01-01"},
+		{AccountID: seeds.AccountID, Type: "expense", Amount: 20, TransactionDate: "2025-03-01"},
 	} {
 		svc.Create(ctx, seeds.HouseholdID, seeds.UserID, req)
 	}
@@ -130,7 +130,7 @@ func TestImportTransactionsValid(t *testing.T) {
 		{"2025-01-03", "expense", 50.0,  "BRL", "Bus",     "Transport", "yes", "", ""},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestImportTransactionsInvalidDate(t *testing.T) {
 		{"2025-01-02", "expense", 50.0,  "", "Valid", "", "", "", ""},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestImportTransactionsInvalidDate(t *testing.T) {
 		{"", "expense", 100.0, "", "", "", "", "", ""},
 		{"2025-01-02", "expense", 50.0, "", "Valid", "", "", "", ""},
 	})
-	result2, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data2, nil, nil)
+	result2, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data2, nil, nil)
 	if result2.Imported != 1 {
 		t.Errorf("imported = %d, want 1", result2.Imported)
 	}
@@ -180,7 +180,7 @@ func TestImportTransactionsInvalidType(t *testing.T) {
 		{"2025-01-02", "expense",  50.0, "", "Valid", "", "", "", ""},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestImportTransactionsAmountZero(t *testing.T) {
 		{"2025-01-01", "expense", 0.0, "", "", "", "", "", ""},
 	})
 
-	result, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if result.Imported != 0 {
 		t.Errorf("imported = %d, want 0", result.Imported)
 	}
@@ -213,7 +213,7 @@ func TestImportTransactionsNegativeAmount(t *testing.T) {
 		{"2025-01-01", "expense", -10.0, "", "", "", "", "", ""},
 	})
 
-	result, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if len(result.Errors) != 1 {
 		t.Errorf("errors = %d, want 1", len(result.Errors))
 	}
@@ -225,7 +225,7 @@ func TestImportTransactionsUnknownPaymentMethod(t *testing.T) {
 		{"2025-01-01", "expense", 50.0, "", "Coffee", "", "no", "nonexistent card", ""},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestImportTransactionsUnknownOwnerFallback(t *testing.T) {
 		{"2025-01-01", "expense", 50.0, "", "", "", "no", "", "unknown person"},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestImportTransactionsUnknownOwnerFallback(t *testing.T) {
 
 func TestImportTransactionsEmptyFile(t *testing.T) {
 	svc, seeds := newTxService(t)
-	_, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, []byte{}, nil, nil)
+	_, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, []byte{}, nil, nil)
 	if err == nil {
 		t.Fatal("expected error for empty file bytes, got nil")
 	}
@@ -271,7 +271,7 @@ func TestImportTransactionsWrongSheetName(t *testing.T) {
 	f.SetCellValue("Plan1", "A2", "2025-01-01")
 	buf, _ := f.WriteToBuffer()
 
-	_, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, buf.Bytes(), nil, nil)
+	_, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, buf.Bytes(), nil, nil)
 	if err == nil {
 		t.Fatal("expected error for wrong sheet name, got nil")
 	}
@@ -283,7 +283,7 @@ func TestImportTransactionsErrorsIsNeverNil(t *testing.T) {
 		{"2025-01-01", "expense", 100.0, "BRL", "Coffee", "Food", "no", "", ""},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestImportTransactionsHouseholdIsolation(t *testing.T) {
 		{"2025-01-01", "expense", 100.0, "", "Test", "", "no", "", ""},
 	})
 
-	result, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, _ := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if result.Imported != 1 {
 		t.Fatalf("imported = %d, want 1", result.Imported)
 	}
@@ -322,7 +322,7 @@ func TestImportTransactionsMixedValidInvalid(t *testing.T) {
 		{"2025-01-05", "income",  2000.0, "", "OK3",  "", "no", "", ""},
 	})
 
-	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, data, nil, nil)
+	result, err := svc.ImportXLSX(context.Background(), seeds.HouseholdID, seeds.UserID, seeds.AccountID, data, nil, nil)
 	if err != nil {
 		t.Fatalf("ImportXLSX: %v", err)
 	}

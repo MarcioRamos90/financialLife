@@ -14,23 +14,26 @@ const maxImportBytes = 10 << 20 // 10 MB
 
 // ImportExportHandler serves all import/export endpoints.
 type ImportExportHandler struct {
-	txSvc     *service.TransactionService
-	incomeSvc *service.IncomeService
-	userRepo  *repository.UserRepository
-	txRepo    *repository.TransactionRepository
+	txSvc       *service.TransactionService
+	incomeSvc   *service.IncomeService
+	accountSvc  *service.AccountService
+	userRepo    *repository.UserRepository
+	txRepo      *repository.TransactionRepository
 }
 
 func NewImportExportHandler(
 	txSvc *service.TransactionService,
 	incomeSvc *service.IncomeService,
+	accountSvc *service.AccountService,
 	userRepo *repository.UserRepository,
 	txRepo *repository.TransactionRepository,
 ) *ImportExportHandler {
 	return &ImportExportHandler{
-		txSvc:     txSvc,
-		incomeSvc: incomeSvc,
-		userRepo:  userRepo,
-		txRepo:    txRepo,
+		txSvc:      txSvc,
+		incomeSvc:  incomeSvc,
+		accountSvc: accountSvc,
+		userRepo:   userRepo,
+		txRepo:     txRepo,
 	}
 }
 
@@ -84,7 +87,19 @@ func (h *ImportExportHandler) ImportTransactions(w http.ResponseWriter, r *http.
 		return
 	}
 
-	result, err := h.txSvc.ImportXLSX(r.Context(), claims.HouseholdID, claims.UserID, fileBytes, users, pms)
+	// Resolve target account: use ?account_id= query param, or fall back to the
+	// first non-archived account for the household.
+	accountID := r.URL.Query().Get("account_id")
+	if accountID == "" {
+		accounts, aErr := h.accountSvc.List(r.Context(), claims.HouseholdID)
+		if aErr != nil || len(accounts) == 0 {
+			jsonError(w, "no account found — create an account first", http.StatusBadRequest)
+			return
+		}
+		accountID = accounts[0].ID
+	}
+
+	result, err := h.txSvc.ImportXLSX(r.Context(), claims.HouseholdID, claims.UserID, accountID, fileBytes, users, pms)
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusBadRequest)
 		return

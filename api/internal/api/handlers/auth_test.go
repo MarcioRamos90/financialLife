@@ -21,33 +21,37 @@ import (
 // ─── Shared test environment ──────────────────────────────────────────────────
 
 type testEnv struct {
-	db     *gorm.DB
-	seeds  testutil.Seeds
-	auth   *service.AuthService
-	tx     *service.TransactionService
-	income *service.IncomeService
-	srv    http.Handler
+	db      *gorm.DB
+	seeds   testutil.Seeds
+	auth    *service.AuthService
+	tx      *service.TransactionService
+	income  *service.IncomeService
+	account *service.AccountService
+	srv     http.Handler
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	db, seeds := testutil.NewDB(t)
 
-	userRepo   := repository.NewUserRepository(db)
-	txRepo     := repository.NewTransactionRepository(db)
-	incomeRepo := repository.NewIncomeRepository(db)
+	userRepo    := repository.NewUserRepository(db)
+	txRepo      := repository.NewTransactionRepository(db)
+	incomeRepo  := repository.NewIncomeRepository(db)
+	accountRepo := repository.NewAccountRepository(db)
 
 	authSvc, err := service.NewAuthService(userRepo, "test-secret-32-characters-long!!", "15m", "720h")
 	if err != nil {
 		t.Fatalf("NewAuthService: %v", err)
 	}
-	txSvc     := service.NewTransactionService(txRepo)
-	incomeSvc := service.NewIncomeService(incomeRepo)
+	txSvc      := service.NewTransactionService(txRepo)
+	incomeSvc  := service.NewIncomeService(incomeRepo)
+	accountSvc := service.NewAccountService(accountRepo)
 
-	authH   := NewAuthHandler(authSvc)
-	txH     := NewTransactionHandler(txSvc)
-	incomeH := NewIncomeHandler(incomeSvc)
-	ieH     := NewImportExportHandler(txSvc, incomeSvc, userRepo, txRepo)
+	authH    := NewAuthHandler(authSvc)
+	txH      := NewTransactionHandler(txSvc)
+	incomeH  := NewIncomeHandler(incomeSvc)
+	accountH := NewAccountHandler(accountSvc)
+	ieH      := NewImportExportHandler(txSvc, incomeSvc, accountSvc, userRepo, txRepo)
 
 	r := chi.NewRouter()
 	r.Post("/auth/login", authH.Login)
@@ -75,9 +79,16 @@ func newTestEnv(t *testing.T) *testEnv {
 		r.Delete("/income-sources/{id}", incomeH.DeleteSource)
 		r.Post("/income-sources/{id}/entries", incomeH.RecordEntry)
 		r.Get("/income-sources/{id}/history", incomeH.ListHistory)
+		// Account routes — static before {id}.
+		r.Get("/accounts", accountH.List)
+		r.Post("/accounts", accountH.Create)
+		r.Get("/accounts/{id}", accountH.GetByID)
+		r.Get("/accounts/{id}/balance", accountH.Balance)
+		r.Put("/accounts/{id}", accountH.Update)
+		r.Delete("/accounts/{id}", accountH.Archive)
 	})
 
-	return &testEnv{db: db, seeds: seeds, auth: authSvc, tx: txSvc, income: incomeSvc, srv: r}
+	return &testEnv{db: db, seeds: seeds, auth: authSvc, tx: txSvc, income: incomeSvc, account: accountSvc, srv: r}
 }
 
 // login calls POST /auth/login and returns the access token and response cookies.

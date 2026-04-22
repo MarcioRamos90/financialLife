@@ -35,5 +35,18 @@ func Seed(db *gorm.DB) error {
 		{HouseholdID: household.ID, Email: "marcio@home.local", DisplayName: "Marcio", PasswordHash: string(hash), Role: "admin"},
 		{HouseholdID: household.ID, Email: "wife@home.local", DisplayName: "Wife", PasswordHash: string(hash), Role: "admin"},
 	}
-	return db.Create(&users).Error
+	if err := db.Create(&users).Error; err != nil {
+		return err
+	}
+
+	// Seed a default "Cash" account so transactions can reference it.
+	defaultAccount := model.Account{
+		HouseholdID:    household.ID,
+		Name:           "Cash",
+		Type:           "cash",
+		IsJoint:        true,
+		Currency:       household.Currency,
+		InitialBalance: 0,
+	}
+	return db.Create(&defaultAccount).Error
 }

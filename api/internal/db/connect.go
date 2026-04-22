@@ -51,6 +51,7 @@ func migrate(db *gorm.DB) error {
 		&model.Household{},
 		&model.User{},
 		&model.RefreshToken{},
+		&model.Account{},
 		&model.PaymentMethod{},
 		&model.Transaction{},
 		&model.IncomeSource{},

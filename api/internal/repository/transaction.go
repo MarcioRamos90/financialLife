@@ -40,6 +40,9 @@ func (r *TransactionRepository) List(ctx context.Context, householdID string, f 
 	if f.RecordedBy != "" {
 		q = q.Where("recorded_by = ?", f.RecordedBy)
 	}
+	if f.AccountID != "" {
+		q = q.Where("account_id = ?", f.AccountID)
+	}
 
 	if err := q.Order("transaction_date DESC, created_at DESC").Find(&txs).Error; err != nil {
 		return nil, fmt.Errorf("List transactions: %w", err)
@@ -72,6 +75,8 @@ func (r *TransactionRepository) Create(ctx context.Context, householdID, userID 
 	tx := model.Transaction{
 		HouseholdID:     householdID,
 		RecordedBy:      userID,
+		AccountID:       req.AccountID,
+		ToAccountID:     req.ToAccountID,
 		Type:            req.Type,
 		Amount:          req.Amount,
 		Currency:        currency,
@@ -93,6 +98,8 @@ func (r *TransactionRepository) Update(ctx context.Context, id, householdID stri
 	result := r.db.WithContext(ctx).Model(&model.Transaction{}).
 		Where("id = ? AND household_id = ?", id, householdID).
 		Updates(map[string]any{
+			"account_id":        req.AccountID,
+			"to_account_id":     req.ToAccountID,
 			"type":              req.Type,
 			"amount":            req.Amount,
 			"currency":          req.Currency,

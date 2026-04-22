@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { IncomeSource, IncomeEntryFormData } from './types'
 import { MONTH_NAMES } from './types'
 import { useRecordIncomeEntry, useIncomeHistory } from './useIncomeSources'
@@ -25,16 +25,35 @@ export default function RecordEntryDrawer({ source, onClose }: Props) {
   const { data: history = [] } = useIncomeHistory(source.id)
   const recordMutation = useRecordIncomeEntry()
 
-  // When year/month changes, pre-fill expected_amount from existing entry (if any) or source default
+  // Track the last period the effect synced so we know when month/year changes vs. history reloads.
+  const prevPeriodRef = useRef({ year: form.year, month: form.month })
+
   useEffect(() => {
     const existing = history.find(e => e.year === form.year && e.month === form.month)
-    setForm(f => ({
-      ...f,
-      expected_amount: String(existing?.expected_amount ?? source.default_amount),
-      received_amount: existing ? String(existing.received_amount) : '',
-      received_on:     existing?.received_on ?? '',
-      notes:           existing?.notes ?? '',
-    }))
+    const periodChanged =
+      prevPeriodRef.current.year !== form.year || prevPeriodRef.current.month !== form.month
+    prevPeriodRef.current = { year: form.year, month: form.month }
+
+    if (existing) {
+      // Always prefill from a saved entry.
+      setForm(f => ({
+        ...f,
+        expected_amount: String(existing.expected_amount),
+        received_amount: String(existing.received_amount),
+        received_on:     existing.received_on ?? '',
+        notes:           existing.notes ?? '',
+      }))
+    } else if (periodChanged) {
+      // User picked a different month/year with no entry — reset to defaults.
+      setForm(f => ({
+        ...f,
+        expected_amount: String(source.default_amount),
+        received_amount: '',
+        received_on:     '',
+        notes:           '',
+      }))
+    }
+    // history loaded/reloaded with no entry and period unchanged → keep whatever the user typed.
   }, [form.year, form.month, history])
 
   const set = <K extends keyof IncomeEntryFormData>(field: K, value: IncomeEntryFormData[K]) =>

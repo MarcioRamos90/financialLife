@@ -3,6 +3,7 @@ import type { Transaction, TransactionFormData } from './types'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './types'
 import { usePaymentMethods, useCreateTransaction, useUpdateTransaction } from './useTransactions'
 import { useIncomeSources } from '../income/useIncomeSources'
+import { useAccounts } from '../accounts/useAccounts'
 
 interface Props {
   transaction?: Transaction   // if provided → edit mode
@@ -12,21 +13,27 @@ interface Props {
 const today = () => new Date().toISOString().slice(0, 10)
 
 const empty: TransactionFormData = {
-  type: 'expense',
-  amount: '',
-  currency: 'BRL',
-  description: '',
-  category: '',
-  is_joint: false,
+  account_id:        '',
+  to_account_id:     '',
+  type:              'expense',
+  amount:            '',
+  currency:          'BRL',
+  description:       '',
+  category:          '',
+  is_joint:          false,
   payment_method_id: '',
-  income_source_id: '',
-  transaction_date: today(),
+  income_source_id:  '',
+  transaction_date:  today(),
 }
 
 export default function TransactionForm({ transaction, onClose }: Props) {
+  const { data: accounts = [] } = useAccounts()
+
   const [form, setForm] = useState<TransactionFormData>(
     transaction
       ? {
+          account_id:        transaction.account_id ?? '',
+          to_account_id:     transaction.to_account_id ?? '',
           type:              transaction.type,
           amount:            String(transaction.amount),
           currency:          transaction.currency,
@@ -37,7 +44,7 @@ export default function TransactionForm({ transaction, onClose }: Props) {
           income_source_id:  transaction.income_source_id  ?? '',
           transaction_date:  transaction.transaction_date,
         }
-      : empty
+      : { ...empty, account_id: accounts[0]?.id ?? '' }
   )
   const [error, setError] = useState('')
 
@@ -75,15 +82,34 @@ export default function TransactionForm({ transaction, onClose }: Props) {
   const set = (field: keyof TransactionFormData, value: string | boolean) =>
     setForm(f => ({ ...f, [field]: value }))
 
+  // Pre-select first account when accounts load and form has no account yet
+  useEffect(() => {
+    if (!form.account_id && accounts.length > 0) {
+      setForm(f => ({ ...f, account_id: accounts[0].id }))
+    }
+  }, [accounts]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!form.account_id) {
+      setError('Please select an account.')
+      return
+    }
     if (!form.amount || parseFloat(form.amount) <= 0) {
       setError('Amount must be greater than zero.')
       return
     }
     if (!form.transaction_date) {
       setError('Date is required.')
+      return
+    }
+    if (form.type === 'transfer' && !form.to_account_id) {
+      setError('Please select a destination account for the transfer.')
+      return
+    }
+    if (form.type === 'transfer' && form.to_account_id === form.account_id) {
+      setError('Source and destination accounts must be different.')
       return
     }
     try {
@@ -129,6 +155,50 @@ export default function TransactionForm({ transaction, onClose }: Props) {
               >{t}</button>
             ))}
           </div>
+
+          {/* Account picker */}
+          <div>
+            <label htmlFor="account_id" className="block text-sm font-medium text-gray-700 mb-1">
+              Account <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="account_id"
+              data-testid="select-account"
+              value={form.account_id}
+              onChange={e => set('account_id', e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">— select account —</option>
+              {accounts.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Destination account — only for transfers */}
+          {form.type === 'transfer' && (
+            <div>
+              <label htmlFor="to_account_id" className="block text-sm font-medium text-gray-700 mb-1">
+                Destination account <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="to_account_id"
+                data-testid="select-to-account"
+                value={form.to_account_id}
+                onChange={e => set('to_account_id', e.target.value)}
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— select destination —</option>
+                {accounts
+                  .filter(a => a.id !== form.account_id)
+                  .map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           {/* Income source picker — only shown when type is income and sources exist */}
           {form.type === 'income' && incomeSources.length > 0 && (
@@ -235,7 +305,7 @@ export default function TransactionForm({ transaction, onClose }: Props) {
             </div>
           )}
 
-          {/* Joint / Transfer pool label */}
+          {/* Joint flag */}
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -244,17 +314,8 @@ export default function TransactionForm({ transaction, onClose }: Props) {
               className="mt-0.5 w-4 h-4 text-blue-600"
             />
             <span className="text-sm text-gray-700">
-              {form.type === 'transfer' ? (
-                <>
-                  <span className="font-medium">Moving to joint account</span>
-                  <span className="block text-gray-400">Check to move money from your personal pool into the joint account. Uncheck to withdraw from joint into your personal pool.</span>
-                </>
-              ) : (
-                <>
-                  <span className="font-medium">Shared household</span>
-                  <span className="block text-gray-400">This transaction belongs to the joint account pool.</span>
-                </>
-              )}
+              <span className="font-medium">Shared household expense</span>
+              <span className="block text-gray-400">Mark as a shared expense split between both household members.</span>
             </span>
           </label>
 

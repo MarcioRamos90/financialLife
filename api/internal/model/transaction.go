@@ -23,6 +23,10 @@ type Transaction struct {
 	HouseholdID     string         `gorm:"type:text;not null;index"                                        json:"household_id"`
 	RecordedBy      string         `gorm:"type:text;not null;index"                                        json:"recorded_by"`
 	RecordedByUser  User           `gorm:"foreignKey:RecordedBy"                                           json:"-"`
+	AccountID       string         `gorm:"type:text;not null;index"                                        json:"account_id"`
+	Account         Account        `gorm:"foreignKey:AccountID"                                            json:"-"`
+	ToAccountID     *string        `gorm:"type:text;index"                                                 json:"to_account_id"`
+	ToAccount       *Account       `gorm:"foreignKey:ToAccountID"                                          json:"-"`
 	Type            string         `gorm:"type:text;not null;check:type IN ('income','expense','transfer')" json:"type"`
 	Amount          float64        `gorm:"not null;check:amount > 0"                                       json:"amount"`
 	Currency        string         `gorm:"type:text;not null;default:BRL"                                  json:"currency"`
@@ -60,6 +64,8 @@ func (p *PaymentMethod) BeforeCreate(_ *gorm.DB) error {
 // ─── Request / Response DTOs ──────────────────────────────────────────────────
 
 type CreateTransactionRequest struct {
+	AccountID       string  `json:"account_id"`
+	ToAccountID     *string `json:"to_account_id"`     // required when type = "transfer"
 	Type            string  `json:"type"`
 	Amount          float64 `json:"amount"`
 	Currency        string  `json:"currency"`
@@ -67,11 +73,13 @@ type CreateTransactionRequest struct {
 	Category        string  `json:"category"`
 	IsJoint         bool    `json:"is_joint"`
 	PaymentMethodID *string `json:"payment_method_id"`
-	IncomeSourceID  *string `json:"income_source_id"` // optional link to an IncomeSource
-	TransactionDate string  `json:"transaction_date"` // "YYYY-MM-DD"
+	IncomeSourceID  *string `json:"income_source_id"`  // optional link to an IncomeSource
+	TransactionDate string  `json:"transaction_date"`  // "YYYY-MM-DD"
 }
 
 type UpdateTransactionRequest struct {
+	AccountID       string  `json:"account_id"`
+	ToAccountID     *string `json:"to_account_id"`     // required when type = "transfer"
 	Type            string  `json:"type"`
 	Amount          float64 `json:"amount"`
 	Currency        string  `json:"currency"`
@@ -79,7 +87,7 @@ type UpdateTransactionRequest struct {
 	Category        string  `json:"category"`
 	IsJoint         bool    `json:"is_joint"`
 	PaymentMethodID *string `json:"payment_method_id"`
-	IncomeSourceID  *string `json:"income_source_id"` // optional link to an IncomeSource
+	IncomeSourceID  *string `json:"income_source_id"`  // optional link to an IncomeSource
 	TransactionDate string  `json:"transaction_date"`
 }
 
@@ -89,6 +97,7 @@ type TransactionFilters struct {
 	Type       string // income | expense | transfer
 	Category   string
 	RecordedBy string // user ID
+	AccountID  string // filter by account
 }
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
@@ -96,6 +105,9 @@ type TransactionFilters struct {
 var validTypes = map[string]bool{"income": true, "expense": true, "transfer": true}
 
 func (r *CreateTransactionRequest) Validate() string {
+	if r.AccountID == "" {
+		return "account_id is required"
+	}
 	if !validTypes[r.Type] {
 		return "type must be income, expense, or transfer"
 	}
@@ -104,11 +116,20 @@ func (r *CreateTransactionRequest) Validate() string {
 	}
 	if r.TransactionDate == "" {
 		return "transaction_date is required (YYYY-MM-DD)"
+	}
+	if r.Type == "transfer" && (r.ToAccountID == nil || *r.ToAccountID == "") {
+		return "to_account_id is required for transfer transactions"
+	}
+	if r.Type == "transfer" && r.ToAccountID != nil && *r.ToAccountID == r.AccountID {
+		return "to_account_id must differ from account_id"
 	}
 	return ""
 }
 
 func (r *UpdateTransactionRequest) Validate() string {
+	if r.AccountID == "" {
+		return "account_id is required"
+	}
 	if !validTypes[r.Type] {
 		return "type must be income, expense, or transfer"
 	}
@@ -117,6 +138,12 @@ func (r *UpdateTransactionRequest) Validate() string {
 	}
 	if r.TransactionDate == "" {
 		return "transaction_date is required (YYYY-MM-DD)"
+	}
+	if r.Type == "transfer" && (r.ToAccountID == nil || *r.ToAccountID == "") {
+		return "to_account_id is required for transfer transactions"
+	}
+	if r.Type == "transfer" && r.ToAccountID != nil && *r.ToAccountID == r.AccountID {
+		return "to_account_id must differ from account_id"
 	}
 	return ""
 }

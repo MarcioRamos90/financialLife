@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -131,10 +132,11 @@ func TestExportTransactions_Empty(t *testing.T) {
 func TestExportTransactions_WithData(t *testing.T) {
 	e := newTestEnv(t)
 
-	for _, body := range []string{
-		`{"type":"expense","amount":50,"description":"Coffee","transaction_date":"2025-01-01"}`,
-		`{"type":"income","amount":5000,"description":"Salary","transaction_date":"2025-01-02"}`,
+	for _, tmpl := range []string{
+		`{"account_id":%q,"type":"expense","amount":50,"description":"Coffee","transaction_date":"2025-01-01"}`,
+		`{"account_id":%q,"type":"income","amount":5000,"description":"Salary","transaction_date":"2025-01-02"}`,
 	} {
+		body := fmt.Sprintf(tmpl, e.seeds.AccountID)
 		rec := do(e.srv, e.authed(t, "POST", "/transactions", body))
 		if rec.Code != http.StatusCreated {
 			t.Fatalf("create tx: status %d body %s", rec.Code, rec.Body.String())

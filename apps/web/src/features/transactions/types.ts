@@ -10,6 +10,8 @@ export interface Transaction {
   household_id: string
   recorded_by: string
   recorded_by_name: string
+  account_id: string
+  to_account_id: string | null
   type: 'income' | 'expense' | 'transfer'
   amount: number
   currency: string
@@ -26,6 +28,8 @@ export interface Transaction {
 }
 
 export interface TransactionFormData {
+  account_id: string
+  to_account_id: string      // empty string = none; required when type = "transfer"
   type: 'income' | 'expense' | 'transfer'
   amount: string
   currency: string

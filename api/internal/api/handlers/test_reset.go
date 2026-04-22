@@ -14,7 +14,7 @@ import (
 func NewTestResetHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Truncate all tables in one shot; CASCADE handles FK order automatically.
-		sql := "TRUNCATE TABLE transactions, payment_methods, refresh_tokens, users, households RESTART IDENTITY CASCADE"
+		sql := "TRUNCATE TABLE transactions, payment_methods, refresh_tokens, users, accounts, households RESTART IDENTITY CASCADE"
 		if err := db.Exec(sql).Error; err != nil {
 			jsonError(w, "reset failed: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -32,6 +32,17 @@ func NewTestResetHandler(db *gorm.DB) http.HandlerFunc {
 			{HouseholdID: household.ID, Email: "wife@home.local", DisplayName: "Wife", PasswordHash: string(hash), Role: "admin"},
 		}
 		if err := db.Create(&users).Error; err != nil {
+			jsonError(w, "seed failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defaultAccount := model.Account{
+			HouseholdID: household.ID,
+			Name:        "Cash",
+			Type:        "cash",
+			IsJoint:     true,
+			Currency:    household.Currency,
+		}
+		if err := db.Create(&defaultAccount).Error; err != nil {
 			jsonError(w, "seed failed: "+err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -19,6 +19,8 @@ const makeTransaction = (overrides: Partial<Transaction> = {}): Transaction => (
   household_id: 'hh-1',
   recorded_by: 'user-1',
   recorded_by_name: 'Marcio',
+  account_id: 'acc-1',
+  to_account_id: null,
   type: 'expense',
   amount: 120.5,
   currency: 'BRL',

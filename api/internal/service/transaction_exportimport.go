@@ -73,10 +73,11 @@ func (s *TransactionService) ExportXLSX(ctx context.Context, householdID string,
 
 // ImportXLSX parses an xlsx file and bulk-creates transactions.
 // Each row is processed independently; a row-level error never blocks the rest.
+// accountID is the default account assigned to every imported transaction.
 // users and paymentMethods are used to resolve display names / method names to IDs.
 func (s *TransactionService) ImportXLSX(
 	ctx context.Context,
-	householdID, callerUserID string,
+	householdID, callerUserID, accountID string,
 	fileBytes []byte,
 	users []model.User,
 	paymentMethods []model.PaymentMethod,
@@ -154,6 +155,7 @@ func (s *TransactionService) ImportXLSX(
 		}
 
 		req := model.CreateTransactionRequest{
+			AccountID:       accountID,
 			Type:            typeStr,
 			Amount:          amount,
 			Currency:        currency,

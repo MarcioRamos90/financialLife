@@ -45,7 +45,8 @@ export function useCreateTransaction() {
     mutationFn: (data: TransactionFormData) =>
       api.post<ApiResponse<Transaction>>('/transactions', {
         ...data,
-        amount: parseFloat(data.amount),
+        amount:            parseFloat(data.amount),
+        to_account_id:     data.to_account_id     || null,
         payment_method_id: data.payment_method_id || null,
         income_source_id:  data.income_source_id  || null,
       }).then(r => r.data),
@@ -59,7 +60,8 @@ export function useUpdateTransaction() {
     mutationFn: ({ id, data }: { id: string; data: TransactionFormData }) =>
       api.put<ApiResponse<Transaction>>(`/transactions/${id}`, {
         ...data,
-        amount: parseFloat(data.amount),
+        amount:            parseFloat(data.amount),
+        to_account_id:     data.to_account_id     || null,
         payment_method_id: data.payment_method_id || null,
         income_source_id:  data.income_source_id  || null,
       }).then(r => r.data),

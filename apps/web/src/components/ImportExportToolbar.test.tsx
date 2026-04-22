@@ -17,7 +17,7 @@ function makeFile(name = 'test.xlsx') {
 describe('ImportExportToolbar', () => {
   const defaultProps = {
     onExport: vi.fn(),
-    onImport: vi.fn<[File], Promise<ImportResult>>().mockResolvedValue(cleanResult),
+    onImport: vi.fn<(file: File) => Promise<ImportResult>>().mockResolvedValue(cleanResult),
     onDownloadTemplate: vi.fn(),
   }
 
@@ -71,7 +71,7 @@ describe('ImportExportToolbar', () => {
   })
 
   it('shows error table in modal when import result has errors', async () => {
-    const props = { ...defaultProps, onImport: vi.fn<[File], Promise<ImportResult>>().mockResolvedValue(errorResult) }
+    const props = { ...defaultProps, onImport: vi.fn<(file: File) => Promise<ImportResult>>().mockResolvedValue(errorResult) }
     render(<ImportExportToolbar {...props} />)
     fireEvent.change(screen.getByTestId('input-import-file'), { target: { files: [makeFile()] } })
     await waitFor(() => expect(screen.getByTestId('error-table')).toBeInTheDocument())

@@ -29,6 +29,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		Type:       q.Get("type"),
 		Category:   q.Get("category"),
 		RecordedBy: q.Get("recorded_by"),
+		AccountID:  q.Get("account_id"),
 	}
 	txs, err := h.svc.List(r.Context(), claims.HouseholdID, filters)
 	if err != nil {

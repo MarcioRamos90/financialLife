@@ -3,10 +3,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import TransactionForm from './TransactionForm'
 import * as useTransactionsModule from './useTransactions'
 import * as useIncomeSourcesModule from '../income/useIncomeSources'
+import * as useAccountsModule from '../accounts/useAccounts'
 
 const mockPaymentMethods = [
   { id: 'pm-1', household_id: 'hh-1', name: 'Nubank', type: 'credit', created_at: '2024-01-01T00:00:00Z' },
   { id: 'pm-2', household_id: 'hh-1', name: 'Cash',   type: 'cash',   created_at: '2024-01-01T00:00:00Z' },
+]
+
+const mockAccounts = [
+  { id: 'acc-1', household_id: 'hh-1', name: 'Cash Wallet', type: 'cash', is_joint: true, currency: 'BRL', color: '', icon: '', initial_balance: 0, archived_at: null, created_at: '', updated_at: '' },
+  { id: 'acc-2', household_id: 'hh-1', name: 'Savings',     type: 'savings', is_joint: true, currency: 'BRL', color: '', icon: '', initial_balance: 0, archived_at: null, created_at: '', updated_at: '' },
 ]
 
 function mockHooks({
@@ -26,6 +32,8 @@ function mockHooks({
   vi.spyOn(useTransactionsModule,  'useUpdateTransaction').mockReturnValue({ mutateAsync: mutateUpdate, isPending: updatePending } as any)
   // Return empty sources by default so the picker is hidden and existing tests are unaffected.
   vi.spyOn(useIncomeSourcesModule, 'useIncomeSources').mockReturnValue({ data: [] } as any)
+  // Mock accounts so account_id is pre-populated.
+  vi.spyOn(useAccountsModule, 'useAccounts').mockReturnValue({ data: mockAccounts } as any)
   return { mutateCreate, mutateUpdate }
 }
 
@@ -185,5 +193,53 @@ describe('TransactionForm', () => {
     fireEvent.change(screen.getByTestId('income-source-picker'), { target: { value: 'src-1' } })
     fireEvent.change(screen.getByTestId('income-source-picker'), { target: { value: '' } })
     expect((screen.getByTestId('income-source-picker') as HTMLSelectElement).value).toBe('')
+  })
+
+  // ─── Account picker tests ─────────────────────────────────────────────────
+
+  it('renders account picker with available accounts', () => {
+    mockHooks()
+    render(<TransactionForm onClose={onClose} />)
+    const picker = screen.getByTestId('select-account')
+    expect(picker).toBeInTheDocument()
+    expect(screen.getByText('Cash Wallet')).toBeInTheDocument()
+    expect(screen.getByText('Savings')).toBeInTheDocument()
+  })
+
+  it('does not render to-account picker for expense type', () => {
+    mockHooks()
+    render(<TransactionForm onClose={onClose} />)
+    // type is "expense" by default
+    expect(screen.queryByTestId('select-to-account')).not.toBeInTheDocument()
+  })
+
+  it('renders to-account picker when type is transfer', () => {
+    mockHooks()
+    render(<TransactionForm onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: /transfer/i }))
+    expect(screen.getByTestId('select-to-account')).toBeInTheDocument()
+  })
+
+  it('shows error when account_id is empty on submit', async () => {
+    mockHooks()
+    // Override accounts to be empty so account_id stays empty
+    vi.spyOn(useAccountsModule, 'useAccounts').mockReturnValue({ data: [] } as any)
+    render(<TransactionForm onClose={onClose} />)
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '50' } })
+    fireEvent.submit(document.querySelector('form')!)
+    await waitFor(() => {
+      expect(screen.getByText('Please select an account.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows error when transfer to_account_id is not selected', async () => {
+    mockHooks()
+    render(<TransactionForm onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: /transfer/i }))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '100' } })
+    fireEvent.submit(document.querySelector('form')!)
+    await waitFor(() => {
+      expect(screen.getByText(/please select a destination account/i)).toBeInTheDocument()
+    })
   })
 })

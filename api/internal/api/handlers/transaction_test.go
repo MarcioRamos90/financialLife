@@ -31,7 +31,7 @@ func TestListTransactions_Empty(t *testing.T) {
 
 func TestCreateTransaction_Success(t *testing.T) {
 	e := newTestEnv(t)
-	body := `{"type":"expense","amount":50.00,"description":"Coffee","category":"Food","transaction_date":"2025-01-15"}`
+	body := fmt.Sprintf(`{"account_id":%q,"type":"expense","amount":50.00,"description":"Coffee","category":"Food","transaction_date":"2025-01-15"}`, e.seeds.AccountID)
 	req := e.authed(t, "POST", "/transactions", body)
 	rec := do(e.srv, req)
 
@@ -59,9 +59,19 @@ func TestCreateTransaction_Success(t *testing.T) {
 	}
 }
 
+func TestCreateTransaction_MissingAccountID(t *testing.T) {
+	e := newTestEnv(t)
+	body := `{"type":"expense","amount":50.00,"transaction_date":"2025-01-15"}`
+	req := e.authed(t, "POST", "/transactions", body)
+	rec := do(e.srv, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
 func TestCreateTransaction_InvalidType(t *testing.T) {
 	e := newTestEnv(t)
-	body := `{"type":"invalid","amount":50.00,"transaction_date":"2025-01-15"}`
+	body := fmt.Sprintf(`{"account_id":%q,"type":"invalid","amount":50.00,"transaction_date":"2025-01-15"}`, e.seeds.AccountID)
 	req := e.authed(t, "POST", "/transactions", body)
 	rec := do(e.srv, req)
 
@@ -72,7 +82,7 @@ func TestCreateTransaction_InvalidType(t *testing.T) {
 
 func TestCreateTransaction_ZeroAmount(t *testing.T) {
 	e := newTestEnv(t)
-	body := `{"type":"expense","amount":0,"transaction_date":"2025-01-15"}`
+	body := fmt.Sprintf(`{"account_id":%q,"type":"expense","amount":0,"transaction_date":"2025-01-15"}`, e.seeds.AccountID)
 	req := e.authed(t, "POST", "/transactions", body)
 	rec := do(e.srv, req)
 
@@ -83,7 +93,7 @@ func TestCreateTransaction_ZeroAmount(t *testing.T) {
 
 func TestCreateTransaction_MissingDate(t *testing.T) {
 	e := newTestEnv(t)
-	body := `{"type":"income","amount":1000.00}`
+	body := fmt.Sprintf(`{"account_id":%q,"type":"income","amount":1000.00}`, e.seeds.AccountID)
 	req := e.authed(t, "POST", "/transactions", body)
 	rec := do(e.srv, req)
 
@@ -97,7 +107,7 @@ func TestListTransactions_AfterCreate(t *testing.T) {
 
 	// Create two transactions
 	for i := range 2 {
-		body := fmt.Sprintf(`{"type":"expense","amount":%d0.00,"description":"Item %d","transaction_date":"2025-01-15"}`, i+1, i+1)
+		body := fmt.Sprintf(`{"account_id":%q,"type":"expense","amount":%d0.00,"description":"Item %d","transaction_date":"2025-01-15"}`, e.seeds.AccountID, i+1, i+1)
 		req := e.authed(t, "POST", "/transactions", body)
 		rec := do(e.srv, req)
 		if rec.Code != http.StatusCreated {
@@ -124,7 +134,7 @@ func TestUpdateTransaction_Success(t *testing.T) {
 	e := newTestEnv(t)
 
 	// Create a transaction
-	createBody := `{"type":"expense","amount":100.00,"description":"Original","transaction_date":"2025-01-15"}`
+	createBody := fmt.Sprintf(`{"account_id":%q,"type":"expense","amount":100.00,"description":"Original","transaction_date":"2025-01-15"}`, e.seeds.AccountID)
 	createReq := e.authed(t, "POST", "/transactions", createBody)
 	createRec := do(e.srv, createReq)
 	if createRec.Code != http.StatusCreated {
@@ -137,7 +147,7 @@ func TestUpdateTransaction_Success(t *testing.T) {
 	id := created.Data.ID
 
 	// Update it
-	updateBody := `{"type":"income","amount":200.00,"description":"Updated","transaction_date":"2025-02-01"}`
+	updateBody := fmt.Sprintf(`{"account_id":%q,"type":"income","amount":200.00,"description":"Updated","transaction_date":"2025-02-01"}`, e.seeds.AccountID)
 	updateReq := e.authed(t, "PUT", "/transactions/"+id, updateBody)
 	updateRec := do(e.srv, updateReq)
 
@@ -163,7 +173,7 @@ func TestDeleteTransaction_Success(t *testing.T) {
 	e := newTestEnv(t)
 
 	// Create a transaction
-	createBody := `{"type":"expense","amount":75.00,"transaction_date":"2025-01-20"}`
+	createBody := fmt.Sprintf(`{"account_id":%q,"type":"expense","amount":75.00,"transaction_date":"2025-01-20"}`, e.seeds.AccountID)
 	createReq := e.authed(t, "POST", "/transactions", createBody)
 	createRec := do(e.srv, createReq)
 	if createRec.Code != http.StatusCreated {
