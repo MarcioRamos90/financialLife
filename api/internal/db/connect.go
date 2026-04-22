@@ -54,7 +54,5 @@ func migrate(db *gorm.DB) error {
 		&model.Account{},
 		&model.PaymentMethod{},
 		&model.Transaction{},
-		&model.IncomeSource{},
-		&model.IncomeEntry{},
 	)
 }

@@ -14,23 +14,20 @@ const maxImportBytes = 10 << 20 // 10 MB
 
 // ImportExportHandler serves all import/export endpoints.
 type ImportExportHandler struct {
-	txSvc       *service.TransactionService
-	incomeSvc   *service.IncomeService
-	accountSvc  *service.AccountService
-	userRepo    *repository.UserRepository
-	txRepo      *repository.TransactionRepository
+	txSvc      *service.TransactionService
+	accountSvc *service.AccountService
+	userRepo   *repository.UserRepository
+	txRepo     *repository.TransactionRepository
 }
 
 func NewImportExportHandler(
 	txSvc *service.TransactionService,
-	incomeSvc *service.IncomeService,
 	accountSvc *service.AccountService,
 	userRepo *repository.UserRepository,
 	txRepo *repository.TransactionRepository,
 ) *ImportExportHandler {
 	return &ImportExportHandler{
 		txSvc:      txSvc,
-		incomeSvc:  incomeSvc,
 		accountSvc: accountSvc,
 		userRepo:   userRepo,
 		txRepo:     txRepo,
@@ -100,51 +97,6 @@ func (h *ImportExportHandler) ImportTransactions(w http.ResponseWriter, r *http.
 	}
 
 	result, err := h.txSvc.ImportXLSX(r.Context(), claims.HouseholdID, claims.UserID, accountID, fileBytes, users, pms)
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	jsonOK(w, result)
-}
-
-// GET /api/v1/income-sources/export
-func (h *ImportExportHandler) ExportIncomeSources(w http.ResponseWriter, r *http.Request) {
-	claims := middleware.ClaimsFromCtx(r)
-	data, err := h.incomeSvc.ExportXLSX(r.Context(), claims.HouseholdID)
-	if err != nil {
-		jsonError(w, "failed to export income sources", http.StatusInternalServerError)
-		return
-	}
-	writeXLSX(w, "income-sources.xlsx", data)
-}
-
-// GET /api/v1/income-sources/export/template
-func (h *ImportExportHandler) IncomeSourceTemplate(w http.ResponseWriter, r *http.Request) {
-	claims := middleware.ClaimsFromCtx(r)
-	data, err := h.incomeSvc.ExportXLSX(r.Context(), claims.HouseholdID)
-	if err != nil {
-		jsonError(w, "failed to generate template", http.StatusInternalServerError)
-		return
-	}
-	writeXLSX(w, "income-sources-template.xlsx", data)
-}
-
-// POST /api/v1/income-sources/import
-func (h *ImportExportHandler) ImportIncomeSources(w http.ResponseWriter, r *http.Request) {
-	claims := middleware.ClaimsFromCtx(r)
-
-	fileBytes, ok := readUpload(w, r)
-	if !ok {
-		return
-	}
-
-	users, err := h.userRepo.ListByHousehold(r.Context(), claims.HouseholdID)
-	if err != nil {
-		jsonError(w, "failed to load users", http.StatusInternalServerError)
-		return
-	}
-
-	result, err := h.incomeSvc.ImportXLSX(r.Context(), claims.HouseholdID, claims.UserID, fileBytes, users)
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusBadRequest)
 		return

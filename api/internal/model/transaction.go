@@ -35,7 +35,6 @@ type Transaction struct {
 	IsJoint         bool           `gorm:"default:false"                                                   json:"is_joint"`
 	PaymentMethodID *string        `gorm:"type:text;index"                                                 json:"payment_method_id"`
 	PaymentMethod   *PaymentMethod `gorm:"foreignKey:PaymentMethodID"                                      json:"-"`
-	IncomeSourceID  *string        `gorm:"type:text"                                                       json:"income_source_id"`
 	TransactionDate string         `gorm:"type:text;not null;index"                                        json:"transaction_date"`
 	CreatedAt       time.Time      `                                                                       json:"created_at"`
 	UpdatedAt       time.Time      `                                                                       json:"updated_at"`
@@ -73,7 +72,6 @@ type CreateTransactionRequest struct {
 	Category        string  `json:"category"`
 	IsJoint         bool    `json:"is_joint"`
 	PaymentMethodID *string `json:"payment_method_id"`
-	IncomeSourceID  *string `json:"income_source_id"`  // optional link to an IncomeSource
 	TransactionDate string  `json:"transaction_date"`  // "YYYY-MM-DD"
 }
 
@@ -87,7 +85,6 @@ type UpdateTransactionRequest struct {
 	Category        string  `json:"category"`
 	IsJoint         bool    `json:"is_joint"`
 	PaymentMethodID *string `json:"payment_method_id"`
-	IncomeSourceID  *string `json:"income_source_id"`  // optional link to an IncomeSource
 	TransactionDate string  `json:"transaction_date"`
 }
 

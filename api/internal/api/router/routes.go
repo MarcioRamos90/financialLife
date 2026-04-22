@@ -34,7 +34,6 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 	// ── Dependencies ──────────────────────────────────────────────────────────
 	userRepo    := repository.NewUserRepository(db)
 	txRepo      := repository.NewTransactionRepository(db)
-	incomeRepo  := repository.NewIncomeRepository(db)
 	accountRepo := repository.NewAccountRepository(db)
 
 	authSvc, err := service.NewAuthService(
@@ -45,14 +44,12 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 		panic("failed to init auth service: " + err.Error())
 	}
 	txSvc      := service.NewTransactionService(txRepo)
-	incomeSvc  := service.NewIncomeService(incomeRepo)
 	accountSvc := service.NewAccountService(accountRepo)
 
 	authHandler         := handlers.NewAuthHandler(authSvc)
 	txHandler           := handlers.NewTransactionHandler(txSvc)
-	incomeHandler       := handlers.NewIncomeHandler(incomeSvc)
 	accountHandler      := handlers.NewAccountHandler(accountSvc)
-	importExportHandler := handlers.NewImportExportHandler(txSvc, incomeSvc, accountSvc, userRepo, txRepo)
+	importExportHandler := handlers.NewImportExportHandler(txSvc, accountSvc, userRepo, txRepo)
 
 	// ── Health ────────────────────────────────────────────────────────────────
 	r.Get("/health", handlers.Health)
@@ -88,17 +85,6 @@ func New(cfg *config.Config, db *gorm.DB) http.Handler {
 			r.Post("/transactions/import",                  importExportHandler.ImportTransactions)
 			r.Put("/transactions/{id}",                     txHandler.Update)
 			r.Delete("/transactions/{id}",                  txHandler.Delete)
-
-			// Income sources — static routes before {id}
-			r.Get("/income-sources",                        incomeHandler.ListSources)
-			r.Post("/income-sources",                       incomeHandler.CreateSource)
-			r.Get("/income-sources/export",                 importExportHandler.ExportIncomeSources)
-			r.Get("/income-sources/export/template",        importExportHandler.IncomeSourceTemplate)
-			r.Post("/income-sources/import",                importExportHandler.ImportIncomeSources)
-			r.Put("/income-sources/{id}",                   incomeHandler.UpdateSource)
-			r.Delete("/income-sources/{id}",                incomeHandler.DeleteSource)
-			r.Post("/income-sources/{id}/entries",          incomeHandler.RecordEntry)
-			r.Get("/income-sources/{id}/history",           incomeHandler.ListHistory)
 
 			// Accounts — static routes before {id}
 			r.Get("/accounts",                accountHandler.List)

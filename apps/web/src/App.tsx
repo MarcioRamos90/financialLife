@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from './features/auth/AuthContext'
 import LoginPage from './features/auth/LoginPage'
 import PrivateRoute from './features/auth/PrivateRoute'
 import TransactionList from './features/transactions/TransactionList'
-import IncomeSourceList from './features/income/IncomeSourceList'
 import AccountList from './features/accounts/AccountList'
 
 // ─── Shared layout with nav ───────────────────────────────────────────────────
@@ -20,12 +19,6 @@ function Layout({ children }: { children: React.ReactNode }) {
               `text-sm ${isActive ? 'text-blue-800 font-medium' : 'text-gray-500 hover:text-gray-800'}`
             }
           >Transactions</NavLink>
-          <NavLink
-            to="/income"
-            className={({ isActive }) =>
-              `text-sm ${isActive ? 'text-blue-800 font-medium' : 'text-gray-500 hover:text-gray-800'}`
-            }
-          >Income</NavLink>
           <NavLink
             to="/accounts"
             className={({ isActive }) =>
@@ -54,7 +47,6 @@ function DashboardPage() {
       <p className="text-gray-500 mb-6">Coming in Week 6 — income/expense charts and allocation rings.</p>
       <div className="grid grid-cols-1 gap-3">
         {[
-          { label: 'Income Sources',    week: 4, path: '/income' },
           { label: 'Allocation Engine', week: 5, path: '/allocations' },
           { label: 'Monthly Report',    week: 6, path: '/reports' },
         ].map(({ label, week }) => (
@@ -85,7 +77,6 @@ export default function App() {
                   <Routes>
                     <Route path="/dashboard"    element={<DashboardPage />} />
                     <Route path="/transactions" element={<TransactionList />} />
-                    <Route path="/income"       element={<IncomeSourceList />} />
                     <Route path="/accounts"     element={<AccountList />} />
                     <Route path="*"             element={<Navigate to="/transactions" replace />} />
                   </Routes>

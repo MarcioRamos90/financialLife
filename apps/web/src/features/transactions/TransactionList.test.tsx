@@ -29,7 +29,6 @@ const makeTransaction = (overrides: Partial<Transaction> = {}): Transaction => (
   is_joint: false,
   payment_method_id: null,
   payment_method_name: null,
-  income_source_id: null,
   transaction_date: '2024-04-01',
   created_at: '2024-04-01T10:00:00Z',
   updated_at: '2024-04-01T10:00:00Z',

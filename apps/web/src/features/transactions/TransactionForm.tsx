@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import type { Transaction, TransactionFormData } from './types'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './types'
 import { usePaymentMethods, useCreateTransaction, useUpdateTransaction } from './useTransactions'
-import { useIncomeSources } from '../income/useIncomeSources'
 import { useAccounts } from '../accounts/useAccounts'
 
 interface Props {
@@ -22,7 +21,6 @@ const empty: TransactionFormData = {
   category:          '',
   is_joint:          false,
   payment_method_id: '',
-  income_source_id:  '',
   transaction_date:  today(),
 }
 
@@ -41,7 +39,6 @@ export default function TransactionForm({ transaction, onClose }: Props) {
           category:          transaction.category,
           is_joint:          transaction.is_joint,
           payment_method_id: transaction.payment_method_id ?? '',
-          income_source_id:  transaction.income_source_id  ?? '',
           transaction_date:  transaction.transaction_date,
         }
       : { ...empty, account_id: accounts[0]?.id ?? '' }
@@ -49,35 +46,16 @@ export default function TransactionForm({ transaction, onClose }: Props) {
   const [error, setError] = useState('')
 
   const { data: paymentMethods = [] } = usePaymentMethods()
-  const { data: incomeSources = [] } = useIncomeSources()
   const createMutation = useCreateTransaction()
   const updateMutation = useUpdateTransaction()
   const isLoading = createMutation.isPending || updateMutation.isPending
 
   const categories = form.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
-  // Reset category and income source link when type changes
+  // Reset category when type changes
   useEffect(() => {
-    setForm(f => ({ ...f, category: '', income_source_id: '' }))
+    setForm(f => ({ ...f, category: '' }))
   }, [form.type])
-
-  // When an income source is selected, pre-fill related fields
-  const handleSourcePick = (sourceId: string) => {
-    if (!sourceId) {
-      set('income_source_id', '')
-      return
-    }
-    const source = incomeSources.find(s => s.id === sourceId)
-    if (!source) return
-    setForm(f => ({
-      ...f,
-      income_source_id: source.id,
-      amount:           source.default_amount > 0 ? String(source.default_amount) : f.amount,
-      description:      source.name,
-      category:         source.category || f.category,
-      is_joint:         source.is_joint,
-    }))
-  }
 
   const set = (field: keyof TransactionFormData, value: string | boolean) =>
     setForm(f => ({ ...f, [field]: value }))
@@ -196,29 +174,6 @@ export default function TransactionForm({ transaction, onClose }: Props) {
                   .map(a => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
-              </select>
-            </div>
-          )}
-
-          {/* Income source picker — only shown when type is income and sources exist */}
-          {form.type === 'income' && incomeSources.length > 0 && (
-            <div>
-              <label htmlFor="income_source_id" className="block text-sm font-medium text-gray-700 mb-1">
-                Income source <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <select
-                id="income_source_id"
-                data-testid="income-source-picker"
-                value={form.income_source_id}
-                onChange={e => handleSourcePick(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">— enter manually —</option>
-                {incomeSources.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}{s.is_joint ? ' (joint)' : ''}{s.default_amount > 0 ? ` · ${s.default_amount.toLocaleString('pt-BR', { style: 'currency', currency: s.currency })}` : ''}
-                  </option>
-                ))}
               </select>
             </div>
           )}

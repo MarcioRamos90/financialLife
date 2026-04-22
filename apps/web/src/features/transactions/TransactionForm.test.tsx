@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import TransactionForm from './TransactionForm'
 import * as useTransactionsModule from './useTransactions'
-import * as useIncomeSourcesModule from '../income/useIncomeSources'
 import * as useAccountsModule from '../accounts/useAccounts'
 
 const mockPaymentMethods = [
@@ -30,8 +29,6 @@ function mockHooks({
   vi.spyOn(useTransactionsModule,  'usePaymentMethods').mockReturnValue({ data: mockPaymentMethods } as any)
   vi.spyOn(useTransactionsModule,  'useCreateTransaction').mockReturnValue({ mutateAsync: mutateCreate, isPending: createPending } as any)
   vi.spyOn(useTransactionsModule,  'useUpdateTransaction').mockReturnValue({ mutateAsync: mutateUpdate, isPending: updatePending } as any)
-  // Return empty sources by default so the picker is hidden and existing tests are unaffected.
-  vi.spyOn(useIncomeSourcesModule, 'useIncomeSources').mockReturnValue({ data: [] } as any)
   // Mock accounts so account_id is pre-populated.
   vi.spyOn(useAccountsModule, 'useAccounts').mockReturnValue({ data: mockAccounts } as any)
   return { mutateCreate, mutateUpdate }
@@ -142,57 +139,6 @@ describe('TransactionForm', () => {
     mockHooks({ createPending: true })
     render(<TransactionForm onClose={onClose} />)
     expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled()
-  })
-
-  it('does not show income source picker when type is expense', () => {
-    mockHooks()
-    vi.spyOn(useIncomeSourcesModule, 'useIncomeSources').mockReturnValue({
-      data: [{ id: 'src-1', name: 'Salary', default_amount: 5000, category: 'Salary', currency: 'BRL', is_joint: false } as any],
-    } as any)
-    render(<TransactionForm onClose={onClose} />)
-    // Default type is expense — picker must not be visible
-    expect(screen.queryByTestId('income-source-picker')).not.toBeInTheDocument()
-  })
-
-  it('shows income source picker when type is income and sources exist', () => {
-    mockHooks()
-    vi.spyOn(useIncomeSourcesModule, 'useIncomeSources').mockReturnValue({
-      data: [{ id: 'src-1', name: 'Salary', default_amount: 5000, category: 'Salary', currency: 'BRL', is_joint: false } as any],
-    } as any)
-    render(<TransactionForm onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', { name: /income/i }))
-    const picker = screen.getByTestId('income-source-picker')
-    expect(picker).toBeInTheDocument()
-    // The source name appears as an option inside the picker specifically
-    expect(picker.querySelector('option[value="src-1"]')).not.toBeNull()
-  })
-
-  it('pre-fills amount, description, category and joint flag when a source is picked', () => {
-    mockHooks()
-    vi.spyOn(useIncomeSourcesModule, 'useIncomeSources').mockReturnValue({
-      data: [{ id: 'src-1', name: 'Freelance Design', default_amount: 3000, category: 'Freelance', currency: 'BRL', is_joint: true } as any],
-    } as any)
-    render(<TransactionForm onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', { name: /income/i }))
-    fireEvent.change(screen.getByTestId('income-source-picker'), { target: { value: 'src-1' } })
-
-    expect((screen.getByLabelText(/amount/i) as HTMLInputElement).value).toBe('3000')
-    expect((screen.getByLabelText(/description/i) as HTMLInputElement).value).toBe('Freelance Design')
-    expect((screen.getByLabelText(/category/i) as HTMLSelectElement).value).toBe('Freelance')
-    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true)
-  })
-
-  it('clears income_source_id when "enter manually" is selected', () => {
-    mockHooks()
-    vi.spyOn(useIncomeSourcesModule, 'useIncomeSources').mockReturnValue({
-      data: [{ id: 'src-1', name: 'Salary', default_amount: 5000, category: 'Salary', currency: 'BRL', is_joint: false } as any],
-    } as any)
-    render(<TransactionForm onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', { name: /income/i }))
-    // Pick a source then go back to manual
-    fireEvent.change(screen.getByTestId('income-source-picker'), { target: { value: 'src-1' } })
-    fireEvent.change(screen.getByTestId('income-source-picker'), { target: { value: '' } })
-    expect((screen.getByTestId('income-source-picker') as HTMLSelectElement).value).toBe('')
   })
 
   // ─── Account picker tests ─────────────────────────────────────────────────

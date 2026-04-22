@@ -48,7 +48,6 @@ export function useCreateTransaction() {
         amount:            parseFloat(data.amount),
         to_account_id:     data.to_account_id     || null,
         payment_method_id: data.payment_method_id || null,
-        income_source_id:  data.income_source_id  || null,
       }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   })
@@ -63,7 +62,6 @@ export function useUpdateTransaction() {
         amount:            parseFloat(data.amount),
         to_account_id:     data.to_account_id     || null,
         payment_method_id: data.payment_method_id || null,
-        income_source_id:  data.income_source_id  || null,
       }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   })

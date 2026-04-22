@@ -20,7 +20,6 @@ export interface Transaction {
   is_joint: boolean
   payment_method_id: string | null
   payment_method_name: string | null
-  income_source_id: string | null
   transaction_date: string  // "YYYY-MM-DD"
   created_at: string
   updated_at: string
@@ -37,7 +36,6 @@ export interface TransactionFormData {
   category: string
   is_joint: boolean
   payment_method_id: string
-  income_source_id: string   // empty string = no link; source ID = linked
   transaction_date: string
 }
 

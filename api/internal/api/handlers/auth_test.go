@@ -25,7 +25,6 @@ type testEnv struct {
 	seeds   testutil.Seeds
 	auth    *service.AuthService
 	tx      *service.TransactionService
-	income  *service.IncomeService
 	account *service.AccountService
 	srv     http.Handler
 }
@@ -36,7 +35,6 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	userRepo    := repository.NewUserRepository(db)
 	txRepo      := repository.NewTransactionRepository(db)
-	incomeRepo  := repository.NewIncomeRepository(db)
 	accountRepo := repository.NewAccountRepository(db)
 
 	authSvc, err := service.NewAuthService(userRepo, "test-secret-32-characters-long!!", "15m", "720h")
@@ -44,14 +42,12 @@ func newTestEnv(t *testing.T) *testEnv {
 		t.Fatalf("NewAuthService: %v", err)
 	}
 	txSvc      := service.NewTransactionService(txRepo)
-	incomeSvc  := service.NewIncomeService(incomeRepo)
 	accountSvc := service.NewAccountService(accountRepo)
 
 	authH    := NewAuthHandler(authSvc)
 	txH      := NewTransactionHandler(txSvc)
-	incomeH  := NewIncomeHandler(incomeSvc)
 	accountH := NewAccountHandler(accountSvc)
-	ieH      := NewImportExportHandler(txSvc, incomeSvc, accountSvc, userRepo, txRepo)
+	ieH      := NewImportExportHandler(txSvc, accountSvc, userRepo, txRepo)
 
 	r := chi.NewRouter()
 	r.Post("/auth/login", authH.Login)
@@ -69,16 +65,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		r.Post("/transactions/import", ieH.ImportTransactions)
 		r.Put("/transactions/{id}", txH.Update)
 		r.Delete("/transactions/{id}", txH.Delete)
-		// Static income-source routes before /{id}.
-		r.Get("/income-sources", incomeH.ListSources)
-		r.Post("/income-sources", incomeH.CreateSource)
-		r.Get("/income-sources/export", ieH.ExportIncomeSources)
-		r.Get("/income-sources/export/template", ieH.IncomeSourceTemplate)
-		r.Post("/income-sources/import", ieH.ImportIncomeSources)
-		r.Put("/income-sources/{id}", incomeH.UpdateSource)
-		r.Delete("/income-sources/{id}", incomeH.DeleteSource)
-		r.Post("/income-sources/{id}/entries", incomeH.RecordEntry)
-		r.Get("/income-sources/{id}/history", incomeH.ListHistory)
 		// Account routes — static before {id}.
 		r.Get("/accounts", accountH.List)
 		r.Post("/accounts", accountH.Create)
@@ -88,7 +74,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		r.Delete("/accounts/{id}", accountH.Archive)
 	})
 
-	return &testEnv{db: db, seeds: seeds, auth: authSvc, tx: txSvc, income: incomeSvc, account: accountSvc, srv: r}
+	return &testEnv{db: db, seeds: seeds, auth: authSvc, tx: txSvc, account: accountSvc, srv: r}
 }
 
 // login calls POST /auth/login and returns the access token and response cookies.
