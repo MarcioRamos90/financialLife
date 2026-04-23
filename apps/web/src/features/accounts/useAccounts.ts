@@ -18,10 +18,15 @@ export function useAccounts() {
   })
 }
 
-export function useAccountBalance(id: string) {
+export function useAccountBalance(id: string, filters: { start_date?: string; end_date?: string } = {}) {
+  const params = new URLSearchParams()
+  if (filters.start_date) params.set('start_date', filters.start_date)
+  if (filters.end_date)   params.set('end_date',   filters.end_date)
+  const query = params.toString() ? `?${params}` : ''
+
   return useQuery({
-    queryKey: ACCOUNT_KEYS.balance(id),
-    queryFn:  () => api.get<ApiResponse<AccountBalance>>(`/accounts/${id}/balance`).then(r => r.data),
+    queryKey: [...ACCOUNT_KEYS.balance(id), filters] as const,
+    queryFn:  () => api.get<ApiResponse<AccountBalance>>(`/accounts/${id}/balance${query}`).then(r => r.data),
     enabled:  !!id,
   })
 }

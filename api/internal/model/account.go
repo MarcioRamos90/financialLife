@@ -57,6 +57,13 @@ type UpdateAccountRequest struct {
 type AccountBalanceResponse struct {
 	AccountID string  `json:"account_id"`
 	Balance   float64 `json:"balance"`
+	Income    float64 `json:"income"`
+	Expense   float64 `json:"expense"`
+}
+
+type AccountBalanceFilters struct {
+	StartDate string // YYYY-MM-DD, optional
+	EndDate   string // YYYY-MM-DD, optional
 }
 
 // ─── Validation helpers ───────────────────────────────────────────────────────

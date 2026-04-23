@@ -73,6 +73,6 @@ func (s *AccountService) Archive(ctx context.Context, id, householdID string) er
 	return s.repo.Archive(ctx, id, householdID)
 }
 
-func (s *AccountService) Balance(ctx context.Context, id, householdID string) (*model.AccountBalanceResponse, error) {
-	return s.repo.Balance(ctx, id, householdID)
+func (s *AccountService) Balance(ctx context.Context, id, householdID string, f model.AccountBalanceFilters) (*model.AccountBalanceResponse, error) {
+	return s.repo.Balance(ctx, id, householdID, f)
 }

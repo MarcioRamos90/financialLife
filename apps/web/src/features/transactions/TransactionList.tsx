@@ -1,24 +1,167 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTransactions, useDeleteTransaction, useExportTransactions, useExportTransactionTemplate, useImportTransactions } from './useTransactions'
+import { useAccounts } from '../accounts/useAccounts'
 import TransactionForm from './TransactionForm'
 import ImportExportToolbar from '../../components/ImportExportToolbar'
 import type { Transaction, TransactionFilters } from './types'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './types'
+import type { Account } from '../accounts/types'
+import { ACCOUNT_TYPES } from '../accounts/types'
 
-export default function TransactionList() {
-  const [filters, setFilters] = useState<TransactionFilters>({})
-  const [showForm, setShowForm]       = useState(false)
-  const [editing, setEditing]         = useState<Transaction | null>(null)
-  const [deleting, setDeleting]       = useState<Transaction | null>(null)
+// ─── Transfer label helpers ───────────────────────────────────────────────────
 
-  const { data: transactions = [], isLoading, isError } = useTransactions(filters)
-  const deleteMutation = useDeleteTransaction()
-  const { download: exportDownload } = useExportTransactions(filters)
+function accountName(id: string | null | undefined, accounts: Account[]): string {
+  if (!id) return '—'
+  return accounts.find(a => a.id === id)?.name ?? '—'
+}
+
+function transferLabel(tx: Transaction, activeAccountId: string, accounts: Account[]): string {
+  if (!activeAccountId) return 'Transfer'
+  if (tx.account_id === activeAccountId) {
+    return `Transfer out → ${accountName(tx.to_account_id, accounts)}`
+  }
+  return `Transfer in ← ${accountName(tx.account_id, accounts)}`
+}
+
+function transferAmount(tx: Transaction, activeAccountId: string): number {
+  if (!activeAccountId || tx.account_id === activeAccountId) return -tx.amount
+  return tx.amount
+}
+
+// ─── Transaction row ──────────────────────────────────────────────────────────
+
+function TxRow({
+  tx,
+  activeAccountId,
+  accounts,
+  onEdit,
+  onDelete,
+}: {
+  tx: Transaction
+  activeAccountId: string
+  accounts: Account[]
+  onEdit: (t: Transaction) => void
+  onDelete: (t: Transaction) => void
+}) {
+  const isTransfer = tx.type === 'transfer'
+  const description = isTransfer
+    ? transferLabel(tx, activeAccountId, accounts)
+    : tx.description || <span className="text-gray-400 italic">—</span>
+
+  let amountValue: number
+  let amountColor: string
+  let amountPrefix: string
+
+  if (isTransfer) {
+    const signed = transferAmount(tx, activeAccountId)
+    amountValue = Math.abs(signed)
+    amountColor = signed >= 0 ? 'text-green-700' : 'text-blue-700'
+    amountPrefix = signed >= 0 ? '+' : '−'
+  } else if (tx.type === 'income') {
+    amountValue = tx.amount
+    amountColor = 'text-green-700'
+    amountPrefix = '+'
+  } else {
+    amountValue = tx.amount
+    amountColor = 'text-red-700'
+    amountPrefix = '−'
+  }
+
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{tx.transaction_date}</td>
+      <td className="px-4 py-3 text-gray-800">
+        {description}
+        {tx.is_joint && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">joint</span>}
+      </td>
+      <td className="px-4 py-3 text-gray-500">{tx.category || '—'}</td>
+      <td className="px-4 py-3 text-gray-500">{tx.recorded_by_name}</td>
+      <td className="px-4 py-3 font-medium whitespace-nowrap">
+        <span className={amountColor}>
+          {amountPrefix}{amountValue.toLocaleString('pt-BR', { style: 'currency', currency: tx.currency })}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => onEdit(tx)} className="text-xs text-blue-600 hover:underline">Edit</button>
+          <button onClick={() => onDelete(tx)} className="text-xs text-red-500 hover:underline">Delete</button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+interface Props {
+  /** When set, the account picker is hidden and this account_id is always applied. */
+  accountId?: string
+  /** Hide the top bar (used when embedded inside AccountTransactionsPanel). */
+  embedded?: boolean
+  /** When embedded, the parent controls the date range so the summary stays in sync. */
+  dateRange?: { start?: string; end?: string }
+  onDateRangeChange?: (range: { start: string; end: string }) => void
+}
+
+export default function TransactionList({ accountId: fixedAccountId, embedded = false, dateRange, onDateRangeChange }: Props) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlAccountId = searchParams.get('account_id') ?? ''
+  const activeAccountId = fixedAccountId ?? urlAccountId
+
+  const [filters, setFilters] = useState<Omit<TransactionFilters, 'account_id' | 'start_date' | 'end_date'>>({})
+  const [internalStart, setInternalStart] = useState('')
+  const [internalEnd,   setInternalEnd]   = useState('')
+  const [showForm, setShowForm]   = useState(false)
+  const [editing, setEditing]     = useState<Transaction | null>(null)
+  const [deleting, setDeleting]   = useState<Transaction | null>(null)
+
+  const activeStart = dateRange !== undefined ? (dateRange.start ?? '') : internalStart
+  const activeEnd   = dateRange !== undefined ? (dateRange.end   ?? '') : internalEnd
+
+  const effectiveFilters: TransactionFilters = {
+    ...filters,
+    start_date: activeStart  || undefined,
+    end_date:   activeEnd    || undefined,
+    account_id: activeAccountId || undefined,
+  }
+
+  const { data: transactions = [], isLoading, isError } = useTransactions(effectiveFilters)
+  const { data: accounts = [] } = useAccounts()
+  const deleteMutation     = useDeleteTransaction()
+  const { download: exportDownload }   = useExportTransactions(effectiveFilters)
   const { download: templateDownload } = useExportTransactionTemplate()
-  const importMutation = useImportTransactions()
+  const importMutation     = useImportTransactions()
 
-  const setFilter = (key: keyof TransactionFilters, value: string) =>
+  const setFilter = (key: keyof Omit<TransactionFilters, 'account_id' | 'start_date' | 'end_date'>, value: string) =>
     setFilters(f => ({ ...f, [key]: value || undefined }))
+
+  const setStartDate = (v: string) => {
+    if (onDateRangeChange) onDateRangeChange({ start: v, end: activeEnd })
+    else setInternalStart(v)
+  }
+  const setEndDate = (v: string) => {
+    if (onDateRangeChange) onDateRangeChange({ start: activeStart, end: v })
+    else setInternalEnd(v)
+  }
+
+  const setUrlAccountId = (id: string) => {
+    setSearchParams(prev => {
+      if (id) prev.set('account_id', id)
+      else prev.delete('account_id')
+      return prev
+    })
+  }
+
+  const hasFilters = Object.keys(filters).length > 0 || !!urlAccountId || !!activeStart || !!activeEnd
+
+  const clearFilters = () => {
+    setFilters({})
+    setInternalStart('')
+    setInternalEnd('')
+    if (onDateRangeChange) onDateRangeChange({ start: '', end: '' })
+    setSearchParams(prev => { prev.delete('account_id'); return prev })
+  }
 
   const handleDelete = async () => {
     if (!deleting) return
@@ -39,26 +182,27 @@ export default function TransactionList() {
   const surplus = totals.income - totals.expense
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={embedded ? '' : 'min-h-screen bg-gray-50'}>
 
-      {/* Top bar */}
-      <div className="bg-white border-b px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-xl font-bold text-blue-900">Transactions</h1>
-        <div className="flex items-center gap-2">
-          <ImportExportToolbar
-            onExport={exportDownload}
-            onImport={file => importMutation.mutateAsync(file)}
-            onDownloadTemplate={templateDownload}
-            isImporting={importMutation.isPending}
-          />
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-800 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
-          >+ New transaction</button>
+      {!embedded && (
+        <div className="bg-white border-b px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+          <h1 className="text-xl font-bold text-blue-900">Transactions</h1>
+          <div className="flex items-center gap-2">
+            <ImportExportToolbar
+              onExport={exportDownload}
+              onImport={file => importMutation.mutateAsync(file)}
+              onDownloadTemplate={templateDownload}
+              isImporting={importMutation.isPending}
+            />
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-800 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+            >+ New transaction</button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="max-w-5xl mx-auto p-6 space-y-4">
+      <div className={embedded ? 'space-y-4' : 'max-w-5xl mx-auto p-6 space-y-4'}>
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
@@ -77,7 +221,27 @@ export default function TransactionList() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl border p-4 flex flex-wrap gap-3">
+        <div className="bg-white rounded-xl border p-4 flex flex-wrap gap-3 items-center">
+          {!fixedAccountId && (
+            <select
+              data-testid="filter-account"
+              aria-label="Filter by account"
+              value={urlAccountId}
+              onChange={e => setUrlAccountId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All accounts</option>
+              {accounts.map(a => {
+                const typeLabel = ACCOUNT_TYPES.find(t => t.value === a.type)?.label ?? a.type
+                return (
+                  <option key={a.id} value={a.id}>
+                    {a.name} · {typeLabel}
+                  </option>
+                )
+              })}
+            </select>
+          )}
+
           <select
             aria-label="Filter by type"
             value={filters.type ?? ''}
@@ -101,21 +265,22 @@ export default function TransactionList() {
 
           <input
             type="date"
-            value={filters.start_date ?? ''}
-            onChange={e => setFilter('start_date', e.target.value)}
+            value={activeStart}
+            onChange={e => setStartDate(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="self-center text-gray-400 text-sm">to</span>
           <input
             type="date"
-            value={filters.end_date ?? ''}
-            onChange={e => setFilter('end_date', e.target.value)}
+            value={activeEnd}
+            onChange={e => setEndDate(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          {Object.keys(filters).length > 0 && (
+          {hasFilters && (
             <button
-              onClick={() => setFilters({})}
+              data-testid="btn-clear-filters"
+              onClick={clearFilters}
               className="text-sm text-gray-400 hover:text-red-500"
             >Clear filters</button>
           )}
@@ -133,7 +298,7 @@ export default function TransactionList() {
             <p className="text-sm text-gray-400 text-center py-12">No transactions yet. Add your first one!</p>
           )}
           {!isLoading && transactions.length > 0 && (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" data-testid="transaction-table">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   {['Date', 'Description', 'Category', 'By', 'Amount', ''].map(h => (
@@ -141,35 +306,16 @@ export default function TransactionList() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100" data-testid="account-transactions-list">
                 {transactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{tx.transaction_date}</td>
-                    <td className="px-4 py-3 text-gray-800">
-                      {tx.description || <span className="text-gray-400 italic">—</span>}
-                      {tx.is_joint && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">joint</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{tx.category || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500">{tx.recorded_by_name}</td>
-                    <td className="px-4 py-3 font-medium whitespace-nowrap">
-                      <span className={tx.type === 'income' ? 'text-green-700' : tx.type === 'expense' ? 'text-red-700' : 'text-blue-700'}>
-                        {tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : ''}
-                        {tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: tx.currency })}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => setEditing(tx)}
-                          className="text-xs text-blue-600 hover:underline"
-                        >Edit</button>
-                        <button
-                          onClick={() => setDeleting(tx)}
-                          className="text-xs text-red-500 hover:underline"
-                        >Delete</button>
-                      </div>
-                    </td>
-                  </tr>
+                  <TxRow
+                    key={tx.id}
+                    tx={tx}
+                    activeAccountId={activeAccountId}
+                    accounts={accounts}
+                    onEdit={setEditing}
+                    onDelete={setDeleting}
+                  />
                 ))}
               </tbody>
             </table>

@@ -15,10 +15,11 @@ type ApiResponse<T> = { data: T }
 
 export function useTransactions(filters: TransactionFilters = {}) {
   const params = new URLSearchParams()
-  if (filters.start_date) params.set('start_date', filters.start_date)
-  if (filters.end_date)   params.set('end_date',   filters.end_date)
-  if (filters.type)       params.set('type',        filters.type)
-  if (filters.category)   params.set('category',    filters.category)
+  if (filters.start_date)  params.set('start_date',  filters.start_date)
+  if (filters.end_date)    params.set('end_date',    filters.end_date)
+  if (filters.type)        params.set('type',         filters.type)
+  if (filters.category)    params.set('category',     filters.category)
+  if (filters.account_id)  params.set('account_id',   filters.account_id)
 
   const query = params.toString() ? `?${params}` : ''
 

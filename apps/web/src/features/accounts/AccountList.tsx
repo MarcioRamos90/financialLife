@@ -1,19 +1,24 @@
 import { useState } from 'react'
 import { useAccounts, useArchiveAccount, useAccountBalance } from './useAccounts'
 import AccountForm from './AccountForm'
+import AccountTransactionsPanel from './AccountTransactionsPanel'
 import type { Account } from './types'
 import { ACCOUNT_TYPES } from './types'
 
-// ─── Single account card with live balance ────────────────────────────────────
+// ─── Single account card ──────────────────────────────────────────────────────
 
 function AccountCard({
   account,
+  isExpanded,
   onEdit,
   onArchive,
+  onToggleTransactions,
 }: {
   account: Account
+  isExpanded: boolean
   onEdit: (a: Account) => void
   onArchive: (a: Account) => void
+  onToggleTransactions: (id: string) => void
 }) {
   const { data: balanceData } = useAccountBalance(account.id)
   const balance = balanceData?.balance ?? account.initial_balance
@@ -23,35 +28,53 @@ function AccountCard({
   return (
     <div
       data-testid="account-card"
-      className="bg-white rounded-xl border shadow-sm p-5 flex flex-col gap-3"
+      className="bg-white rounded-xl border shadow-sm overflow-hidden"
       style={{ borderTop: `4px solid ${accentColor}` }}
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold text-gray-800 text-base">{account.name}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {typeLabel} · {account.currency} {account.is_joint ? '· Joint' : '· Personal'}
-          </p>
+      <div className="p-5 flex flex-col gap-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-semibold text-gray-800 text-base">{account.name}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {typeLabel} · {account.currency} {account.is_joint ? '· Joint' : '· Personal'}
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              data-testid={`btn-edit-account-${account.id}`}
+              onClick={() => onEdit(account)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors text-xs"
+              title="Edit"
+            >✏️</button>
+            <button
+              data-testid={`btn-archive-account-${account.id}`}
+              onClick={() => onArchive(account)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors text-xs"
+              title="Archive"
+            >🗄️</button>
+          </div>
         </div>
-        <div className="flex gap-1">
-          <button
-            data-testid={`btn-edit-account-${account.id}`}
-            onClick={() => onEdit(account)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors text-xs"
-            title="Edit"
-          >✏️</button>
-          <button
-            data-testid={`btn-archive-account-${account.id}`}
-            onClick={() => onArchive(account)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors text-xs"
-            title="Archive"
-          >🗄️</button>
+
+        <div className="text-2xl font-bold" style={{ color: accentColor }}>
+          {balance.toLocaleString('pt-BR', { style: 'currency', currency: account.currency })}
         </div>
+
+        <button
+          data-testid="btn-view-transactions"
+          onClick={() => onToggleTransactions(account.id)}
+          className="self-start text-xs text-blue-600 hover:underline"
+        >
+          {isExpanded ? 'Hide transactions ▲' : 'View transactions ▼'}
+        </button>
       </div>
 
-      <div className="text-2xl font-bold" style={{ color: accentColor }}>
-        {balance.toLocaleString('pt-BR', { style: 'currency', currency: account.currency })}
-      </div>
+      {isExpanded && (
+        <AccountTransactionsPanel
+          accountId={account.id}
+          accountName={account.name}
+          currency={account.currency}
+        />
+      )}
     </div>
   )
 }
@@ -62,13 +85,18 @@ export default function AccountList() {
   const { data: accounts = [], isLoading, isError } = useAccounts()
   const archiveMutation = useArchiveAccount()
 
-  const [showForm, setShowForm]       = useState(false)
-  const [editing, setEditing]         = useState<Account | null>(null)
-  const [archiving, setArchiving]     = useState<Account | null>(null)
+  const [showForm, setShowForm]         = useState(false)
+  const [editing, setEditing]           = useState<Account | null>(null)
+  const [archiving, setArchiving]       = useState<Account | null>(null)
+  const [expandedId, setExpandedId]     = useState<string | null>(null)
+
+  const toggleTransactions = (id: string) =>
+    setExpandedId(prev => (prev === id ? null : id))
 
   const handleArchiveConfirm = async () => {
     if (!archiving) return
     await archiveMutation.mutateAsync(archiving.id)
+    if (expandedId === archiving.id) setExpandedId(null)
     setArchiving(null)
   }
 
@@ -110,8 +138,10 @@ export default function AccountList() {
             <AccountCard
               key={a.id}
               account={a}
+              isExpanded={expandedId === a.id}
               onEdit={setEditing}
               onArchive={setArchiving}
+              onToggleTransactions={toggleTransactions}
             />
           ))}
         </div>

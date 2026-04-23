@@ -18,6 +18,8 @@ export interface Account {
 export interface AccountBalance {
   account_id: string
   balance: number
+  income: number
+  expense: number
 }
 
 export interface AccountFormData {

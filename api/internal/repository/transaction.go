@@ -41,7 +41,7 @@ func (r *TransactionRepository) List(ctx context.Context, householdID string, f 
 		q = q.Where("recorded_by = ?", f.RecordedBy)
 	}
 	if f.AccountID != "" {
-		q = q.Where("account_id = ?", f.AccountID)
+		q = q.Where("account_id = ? OR to_account_id = ?", f.AccountID, f.AccountID)
 	}
 
 	if err := q.Order("transaction_date DESC, created_at DESC").Find(&txs).Error; err != nil {

@@ -64,7 +64,12 @@ func (h *AccountHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *AccountHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromCtx(r)
 	id := chi.URLParam(r, "id")
-	balance, err := h.svc.Balance(r.Context(), id, claims.HouseholdID)
+	q := r.URL.Query()
+	f := model.AccountBalanceFilters{
+		StartDate: q.Get("start_date"),
+		EndDate:   q.Get("end_date"),
+	}
+	balance, err := h.svc.Balance(r.Context(), id, claims.HouseholdID, f)
 	if err != nil {
 		jsonError(w, "account not found", http.StatusNotFound)
 		return

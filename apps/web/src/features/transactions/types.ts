@@ -44,6 +44,7 @@ export interface TransactionFilters {
   end_date?: string
   type?: string
   category?: string
+  account_id?: string
 }
 
 export const EXPENSE_CATEGORIES = [
